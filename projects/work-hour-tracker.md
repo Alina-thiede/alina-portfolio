@@ -1,5 +1,3 @@
-![Alina Thiede — data engineering, Microsoft Fabric, agentic development, Vienna](../assets/alina-thiede-banner.png)
-
 # Work hour tracker
 
 Time tracking for a small consultancy, where the database — not the app — is the product surface: usable from a browser, from T-SQL, and from a Claude Code session.
