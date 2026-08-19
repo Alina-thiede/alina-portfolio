@@ -4,7 +4,7 @@
 
 Junior data engineer · Microsoft Fabric and Power BI · Vienna
 
-[CV](#TODO-cv-link) · [LinkedIn](#TODO-linkedin) · [Email](#TODO-email)
+[CV](https://github.com/Alina-thiede/alina-thiede/blob/main/CV_AlinaThiede.pdf) · [LinkedIn](https://linkedin.com/in/alina-thiede) · [alina.thiede@outlook.com](mailto:alina.thiede@outlook.com)
 
 ---
 
@@ -44,4 +44,4 @@ Stack
 
 ## Contact
 
-[CV](#TODO-cv-link) · [LinkedIn](#TODO-linkedin) · [Email](#TODO-email)
+[CV](https://github.com/Alina-thiede/alina-thiede/blob/main/CV_AlinaThiede.pdf) · [LinkedIn](https://linkedin.com/in/alina-thiede) · [alina.thiede@outlook.com](mailto:alina.thiede@outlook.com)
