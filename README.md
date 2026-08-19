@@ -1,8 +1,8 @@
-![](assets/alina-thiede-header.png)
+![Alina Thiede — data engineering, Microsoft Fabric, agentic development, Vienna](assets/alina-thiede-banner.png)
 
 # Alina Thiede
 
-Junior data engineer · Microsoft Fabric and Power BI · Vienna
+Junior data engineer · Microsoft Fabric and Power BI · Agentic development · Vienna
 
 [CV](https://github.com/Alina-thiede/alina-thiede/blob/main/CV_AlinaThiede.pdf) · [LinkedIn](https://linkedin.com/in/alina-thiede) · [alina.thiede@outlook.com](mailto:alina.thiede@outlook.com)
 
