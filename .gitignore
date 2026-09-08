@@ -1,0 +1,23 @@
+# Raw, unreviewed screen captures. Every image in this repository is published,
+# so nothing gets committed until it has been renamed into a project's media/
+# folder — which is the step where it gets looked at for leaked identifiers.
+Screenshot *.png
+Screenshot *.jpg
+**/Screenshot *.png
+
+# Generated documents from the work-hour tracker. These hold real earnings and
+# real hours and must never reach a public repository.
+abrechnungen/
+planung/
+*.rows.json
+
+# Local env / secrets, in case anything is ever drafted here
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

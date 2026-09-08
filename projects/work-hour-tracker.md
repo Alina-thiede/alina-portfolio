@@ -4,7 +4,9 @@ Time tracking for a small consultancy, where the database — not the app — is
 
 Full write-up · completed August 2026 · [back to portfolio](../README.md)
 
-[60-second demo](#TODO-demo-video) · [Architecture](#architecture) · [Results](#results-in-detail)
+**[Screens](#screens)** · **[Architecture](#architecture)** · **[Results](#results-in-detail)** · **[Security deep-dive →](work-hour-tracker/security.md)** · **[The agent layer →](work-hour-tracker/agentic-layer.md)** · **[The incident →](work-hour-tracker/data-incident.md)**
+
+> **Why there is nothing to click.** The app runs inside a Microsoft Fabric workspace, behind Entra sign-in, on a working consultancy's billing data. There is no anonymous URL to hand you. What follows instead: annotated screenshots of the app and of the agent tooling, taken against a **demo database whose every row is invented** and whose every time entry labels itself `[DEMO]`. No source code is published — see [NOTICE](../NOTICE.md).
 
 ---
 
@@ -28,9 +30,48 @@ Everyone tracked their own hours their own way. Three things broke as a result:
 **Recommendation**
 
 - **State the privacy boundary exactly, then close it.** The row-level policy is an *allowlist* over enrolled logins — an unenrolled login (workspace admin or owner) is not filtered at all. Enrol every colleague, and run `rls --status` before telling anyone their rows are private.
-- **Finish the policy.** It covers 4 of the 5 owner-scoped tables; apply it to `ProjectShares` as soon as that table deploys.
+- **Give the app its own service principal.** The whole allowlist exists because the app's data backend connects to SQL as the *workspace owner* — a real person — so a deny-by-default policy would catch it and blank the app for everyone. With a service principal, that person can be enrolled like anybody else and the policy can close. *(The policy itself is now complete: 25 predicates across all 5 owner-scoped tables — see the [security deep-dive](work-hour-tracker/security.md).)*
 - **Move the plugin repo to the organisation account.** It lives under a personal account today; the transfer keeps history, survives an owner leaving, and is a precondition for org-wide distribution.
 - **Before adding analytics, add tests.** The next feature should not be the first thing this codebase relies on CI for.
+
+## Screens
+
+*All screenshots are of the running app, signed in against the demo database. Every note visible in the data begins with `[DEMO]` — that prefix is a property of the seeded dataset, and it is why these screenshots can be published at all.*
+
+**Dashboard** — four KPIs, the week as a bar chart, hours by project in each project's own stored colour, and week-by-week small multiples where hours are *drawn* and money is *written*, so two measures share a card without sharing a scale. All five week cards share one maximum, so the weeks compare honestly.
+
+![Dashboard: KPI cards, weekly bar chart, hours by project, and week-by-week cards](work-hour-tracker/media/app-02-dashboard.png)
+
+**Monthly project hours** — the plan/actual view. A scatter of planned against actual with the dashed *actual = planned* diagonal and a least-squares trend line, progress rings that turn rosy when a project goes over plan, and the same numbers again as a table because a gauge is not a figure you can check.
+
+![Monthly project hours: planned-vs-actual scatter, progress rings, and the underlying table](work-hour-tracker/media/app-06-monthly-project-hours.png)
+
+**Time entries** — everything logged, newest first, editable in place. `Edit` rather than delete-and-re-add is a deliberate constraint: re-adding an entry would lose its id, its notes and its frozen rate, silently repricing old work at today's rate.
+
+![Time entries: the full list with inline edit and delete, every note prefixed DEMO](work-hour-tracker/media/app-04-time-entries.png)
+
+**Projects** — where the rate model becomes visible. The rate is *yours*: everyone on a shared project sets their own, and nobody sees anyone else's. Sharing is a separate act from creating, and the rate you set stays yours whoever else joins.
+
+![Projects: per-person rates, sharing, and colour assignment](work-hour-tracker/media/app-05-projects.png)
+
+**Monthly planning** — planned hours per project per month, saved as soon as a cell loses focus.
+
+![Monthly planning: the twelve-month editable grid](work-hour-tracker/media/app-07-planning.png)
+
+<details>
+<summary>Two more — new entry, and the sign-in gate</summary>
+
+**New time entry.** The rate in force is resolved and frozen onto the row at this moment, which is what makes historical earnings immutable.
+
+![New time entry form](work-hour-tracker/media/app-03-new-entry.png)
+
+**The sign-in gate.** No password is ever handled by this app — sign-in is brokered to Microsoft Entra ID through the Fabric portal.
+
+![Sign in with Microsoft](work-hour-tracker/media/app-01-signin.png)
+
+</details>
+
+The same data, from a terminal conversation — the monthly statement, the planning review, and logging hours in plain language — is on its own page: **[the agent layer →](work-hour-tracker/agentic-layer.md)**
 
 ## Architecture
 
@@ -79,15 +120,18 @@ The frontend is the only part written by hand. The database, the CRUD API, the a
 
 ## Data model
 
-Five tables. Every data table carries the same four owner columns — `user_email`, `user_name`, `user_first_name`, `user_last_name` — written together on each insert.
+Six tables. Every data table carries the same four owner columns — `user_email`, `user_name`, `user_first_name`, `user_last_name` — written together on each insert.
 
 | Table | Grain | Key columns |
 |---|---|---|
-| `Projects` | one row per person per project | `id`, `name`, `hourlyRate` *(suggested)*, `color` |
+| `Projects` | one row per project, **shared** — its `user_email` is a *created by* label, not an owner | `id`, `name`, `hourlyRate` *(suggested)*, `color` |
 | `TimeEntries` | one row per person per project per logged block | `id`, `date`, `hours`, `hourlyRate` *(frozen copy)*, `notes`, `project_id` |
 | `ProjectRates` | what one person charges on one project | `id`, `hourlyRate`, `project_id` |
+| `ProjectShares` | one project made visible to one other person | `id`, `project_id`, `shared_with` *(the invitee)*, `user_email` *(the sharer)* |
 | `ProjectMonthlyPlans` | one row per person per project per month | `id`, `month` (`YYYY-MM`), `plannedHours`, `project_id` |
-| `UserProfiles` | one row per person | source of truth for their real name |
+| `UserProfiles` | one row per person | source of truth for their real name; doubles as the team roster |
+
+None of those grains is a database constraint — the platform offers no `unique` option — so each is enforced in application code. That turned out to matter far more than expected: the `ProjectMonthlyPlans` grain, `(user_email, month, project_id)`, later became the only way to reconcile two diverged copies of the database. See [the incident](work-hour-tracker/data-incident.md).
 
 Two rules the model depends on:
 
@@ -123,6 +167,7 @@ Verified by hand end to end, from a clean install through to writes landing in t
 - **`SUSER_SNAME()` on a skill connection returns the real Entra UPN**, matching stored `user_email` values *(measured)* — the fact that makes SQL-side row filtering viable, and the reason the skill needs no per-person configuration.
 - **Three defects surfaced only under real installation, not review** *(measured)*: a setup probe that called `process.exit` instead of throwing, so `setup` told the user to run `setup`; a `^11.0.1` dependency spec silently pinned to an exact version because Windows `cmd.exe` eats `^`; and a home directory containing a space arriving as two arguments under `shell: true` (Node DEP0190).
 - **Plugin config cannot live beside the plugin.** *(measured)* Claude Code replaces the plugin cache directory wholesale on every version bump, and `$CLAUDE_PLUGIN_DATA` is not exported to skill-invoked bash — so the `~/.work-hours/` branch is what actually runs, not a fallback.
+- **An integrity check is not a backup, and I found that out the expensive way.** *(measured)* After migrating the database to a new Fabric workspace, one config file still pointed at the old one — so for **eight days** the app wrote to the new database while the CLI and both report scripts wrote to the old one. Both sides took real rows; neither was a subset of the other. **8 rows existed only in the old database.** The snapshots I had been calling a backup stored hashes and row counts, not rows: they could prove the divergence and could not have repaired it. Reconciling it needed a different tool from the one that did the migration, because four plan rows existed on both sides with identical content and different ids. → **[The full write-up](work-hour-tracker/data-incident.md)**
 
 ## Repository structure
 
@@ -165,7 +210,8 @@ node scripts/wht.mjs setup && node scripts/wht.mjs whoami
 | Row-level security in SQL | Role-based API policies | The platform has no per-user role claim and its policies cannot subquery — the API layer physically cannot express "managers see everyone" |
 | Allowlist policy over enrolled logins | Deny-by-default for all logins | Deny-by-default catches the app's own service identity and blanks the app for everyone; the cost is that unenrolled admins stay unfiltered, and that limit is documented rather than hidden |
 | Frozen rate copied onto each entry | Join to the current rate at read time | A raise must not rewrite invoiced history; the duplication is the point |
-| Per-person `Projects` rows | One shared project registry | Matches how the app writes data; the cost is that cross-person reports group on `p.name` + `user_email`, not `project_id` |
+| A shared `Projects` table with the rate split out into `ProjectRates` | One rate column on the project | A project — its name and colour — is shared by nature; a rate is personal. With one column, sharing a project shared the money too, and two people could not work the same engagement at different rates |
+| Sharing as a join table (`ProjectShares`) | `shared_with: "a@x;b@x"` on the project row | Not taste — a policy can only compare a claim against a column *on the same row*: no `contains`, no subquery. A delimited list is physically unenforceable at the backend. **The data model was chosen by what the security layer can express** |
 | `edit-entry` / `edit-project` in place | Delete and re-add | Delete-and-re-add silently discards the id, untouched notes and the frozen rate |
 | Config in `~/.work-hours/` | Config beside the plugin | The plugin directory is deleted and re-copied on every version bump |
 | Direct SQL for the agent path | Reuse the app's Data API | Fabric sign-in is browser-only — no device-code or service-principal flow exists for a terminal tool |
@@ -173,7 +219,7 @@ node scripts/wht.mjs setup && node scripts/wht.mjs whoami
 ## Limitations & next steps
 
 - **No automated tests or CI.** Every defect so far was found by installing and using the thing. First priority.
-- **Row-level security covers 4 of 5 tables** — `ProjectShares` is not deployed yet; apply the policy when it is.
+- **Project *names* are readable by any signed-in user.** A policy cannot check membership, so the app filters the project list and the backend does not. Hours, rates and plans are not exposed — but names are, and calling that "filtered in the UI" would be dishonest.
 - **Manager visibility is a literal email list** compiled into the policy. Fine for one team, wrong past a handful of people.
 - **Unenrolled logins are not filtered.** Workspace admins and owners read everything, by design of the allowlist.
 - **Onboarding is manual**: Node, the Azure CLI, and a one-off database grant per person.
