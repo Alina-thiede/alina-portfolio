@@ -141,6 +141,8 @@ Both formats of the working-time record render from **one** model, so they canno
 
 **Markdown and CSV only — never HTML or PDF.** One renderer per document. If a print version is ever needed it gets converted from the Markdown at that moment, rather than a second generator existing permanently to fall out of step with the first.
 
+**→ Read the documents themselves:** [`abrechnung-demo-2026-08.md`](samples/abrechnung-demo-2026-08.md) and [`zeitaufzeichnung-demo-2026-08.md`](samples/zeitaufzeichnung-demo-2026-08.md), with the CSVs, are in [samples/](samples/). Section 7 of the statement is the one to read — eleven checks and seven stated assumptions.
+
 ---
 
 ## 5. `month-planning` — review, then questions, then plan
@@ -175,6 +177,8 @@ node scripts/monatsplanung.mjs --plan-month 2026-09 \
 And it did two things it was not asked to do, both of which it announced rather than performed quietly: it pushed back on the focus choice, pointing out that the chosen project had won every contest for leftover hours in both prior months and that planning it *below* its actual only holds if a handover really ended the work; and it recorded, in the plan document itself, the evidence for how the hours should be shaped — two six-hour blocks produced real work in August while four separate two-hour slots did not, so the plan assumes two full days a week rather than 2.8 hours spread daily.
 
 **An agent that quietly adjusts your numbers is worse than one that refuses.** Both of those went into the document as flags, not edits.
+
+**→ Read the documents themselves:** [`planungsreview-demo-2026-08.md`](samples/planungsreview-demo-2026-08.md) is the review, [`monatsplan-demo-2026-09.md`](samples/monatsplan-demo-2026-09.md) is the plan that came out of it. Section 3 of the review — *what was achieved* — is the half written from the entry notes rather than computed, and it is where the split between script and model is easiest to see.
 
 ---
 

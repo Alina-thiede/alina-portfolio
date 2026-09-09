@@ -73,6 +73,19 @@ Everyone tracked their own hours their own way. Three things broke as a result:
 
 The same data, from a terminal conversation — the monthly statement, the planning review, and logging hours in plain language — is on its own page: **[the agent layer →](work-hour-tracker/agentic-layer.md)**
 
+## Sample output
+
+There is no live app to open, but there are the documents it produces. Six of them, for one person and one month, generated from the demo database and committed here unedited: **[samples/ →](work-hour-tracker/samples/)**
+
+| File | What it is |
+|---|---|
+| [`abrechnung-demo-2026-08.md`](work-hour-tracker/samples/abrechnung-demo-2026-08.md) | The monthly billing statement — hours by project and by task, frozen rates, net/VAT/gross, then **eleven plausibility checks and seven numbered assumptions** |
+| [`zeitaufzeichnung-demo-2026-08.md`](work-hour-tracker/samples/zeitaufzeichnung-demo-2026-08.md) | The Austrian statutory working-time record (§ 26 Abs 3 AZG) — target against actual, day by day, with the balance that goes to payroll |
+| [`timesheet-demo-2026-08.csv`](work-hour-tracker/samples/timesheet-demo-2026-08.csv) · [`zeitaufzeichnung-demo-2026-08.csv`](work-hour-tracker/samples/zeitaufzeichnung-demo-2026-08.csv) | The same content as data. German-Excel compatible — UTF-8 with BOM, semicolons, decimal commas |
+| [`planungsreview-demo-2026-08.md`](work-hour-tracker/samples/planungsreview-demo-2026-08.md) · [`monatsplan-demo-2026-09.md`](work-hour-tracker/samples/monatsplan-demo-2026-09.md) | The month in review, and the plan that came out of it and was written back to the database |
+
+Markdown and CSV only — never HTML or PDF. One renderer per document means there is no second generator to drift out of step with the first.
+
 ## Architecture
 
 ```mermaid

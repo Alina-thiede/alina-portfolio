@@ -20,7 +20,7 @@ Stack
 
 ---
 
-> **A note on what you can click.** This work was built for a working consultancy, so the running system sits behind company sign-in and holds real client hours. What is public instead: full technical write-ups, and annotated screenshots of the app and of the agent tooling — every one taken against an invented demo dataset. No source code is published here; see [NOTICE](NOTICE.md).
+> **A note on what you can click.** This work was built for a working consultancy, so the running system sits behind company sign-in and holds real client hours. What is public instead: full technical write-ups, annotated screenshots of the app and of the agent tooling, and the actual documents the tooling produces — all of it generated from an invented demo dataset. No source code is published here; see [NOTICE](NOTICE.md).
 
 ## Work hour tracker — flagship
 *Completed: August 2026*
@@ -33,7 +33,7 @@ Stack
 
 ![The work hour tracker dashboard, running against the demo dataset](projects/work-hour-tracker/media/app-02-dashboard.png)
 
-**[Full write-up →](projects/work-hour-tracker.md)** · **[Screens →](projects/work-hour-tracker.md#screens)** · **[The agent layer →](projects/work-hour-tracker/agentic-layer.md)** · **[Security →](projects/work-hour-tracker/security.md)** · **[The incident →](projects/work-hour-tracker/data-incident.md)**
+**[Full write-up →](projects/work-hour-tracker.md)** · **[Screens →](projects/work-hour-tracker.md#screens)** · **[Sample output →](projects/work-hour-tracker/samples/)** · **[The agent layer →](projects/work-hour-tracker/agentic-layer.md)** · **[Security →](projects/work-hour-tracker/security.md)** · **[The incident →](projects/work-hour-tracker/data-incident.md)**
 
 *Live app is private — it holds colleague hours under company sign-in. Every figure above and in every screenshot comes from an invented demo dataset.*
 

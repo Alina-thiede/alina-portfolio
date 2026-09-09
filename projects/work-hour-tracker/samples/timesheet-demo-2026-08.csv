@@ -1,0 +1,24 @@
+﻿Datum;Wochentag;Projekt;Task;Beschreibung;Stunden;Satz;Betrag;Abrechenbar;EintragID
+04.08.2026;Dienstag;Aerzte App;[DEMO] Aerzte App — built the specialty search filter;[DEMO] Aerzte App — built the specialty search filter;5,00;120,00;600,00;ja;28670334-D6E1-913B-AA02-F7DFC7D439A7
+05.08.2026;Mittwoch;Aerzte App;[DEMO] Aerzte App — wired the lakehouse query behind the results list;[DEMO] Aerzte App — wired the lakehouse query behind the results list;6,00;120,00;720,00;ja;7F94237D-81BB-2E85-5807-D8BD52287594
+06.08.2026;Donnerstag;Aerzte App;[DEMO] Aerzte App — pagination and empty states for the results list;[DEMO] Aerzte App — pagination and empty states for the results list;4,00;120,00;480,00;ja;6B1D1BAA-8D20-8060-FB47-AA2448F8189A
+06.08.2026;Donnerstag;Work-hour-tracker;[DEMO] Work-hour-tracker — debugged the monthly planning save path;[DEMO] Work-hour-tracker — debugged the monthly planning save path;2,00;100,00;200,00;ja;959FE644-1EAF-781C-757C-EB7E79BE377D
+10.08.2026;Montag;Aerzte App;[DEMO] Aerzte App — reviewed the data agent answers against the source tables;[DEMO] Aerzte App — reviewed the data agent answers against the source tables;6,00;120,00;720,00;ja;0CE66760-4569-8AD8-8713-31416FC25F1B
+11.08.2026;Dienstag;Aerzte App;[DEMO] Aerzte App — accessibility pass on the search form;[DEMO] Aerzte App — accessibility pass on the search form;4,00;120,00;480,00;ja;11986DC0-F94E-4CFC-2577-B0C61A7550AE
+11.08.2026;Dienstag;Work-hour-tracker;[DEMO] Work-hour-tracker — row-level security policy review;[DEMO] Work-hour-tracker — row-level security policy review;2,00;100,00;200,00;ja;4277E9C5-51F3-2237-FB36-86A916AF3246
+12.08.2026;Mittwoch;Aerzte App;[DEMO] Aerzte App — cleaned up the specialty reference data;[DEMO] Aerzte App — cleaned up the specialty reference data;6,00;120,00;720,00;ja;A36496C4-4587-B014-E3FF-0AA312544F6E
+13.08.2026;Donnerstag;Aerzte App;[DEMO] Aerzte App — error handling for the detail page;[DEMO] Aerzte App — error handling for the detail page;4,00;120,00;480,00;ja;384B988F-6978-6E3A-E28E-5558B69D981A
+13.08.2026;Donnerstag;Work-hour-tracker;[DEMO] Work-hour-tracker — monthly statement script: rate resolution;[DEMO] Work-hour-tracker — monthly statement script: rate resolution;2,00;100,00;200,00;ja;C6F22D13-C6BB-B09B-0FD9-A526E559DE89
+17.08.2026;Montag;Aerzte App;[DEMO] Aerzte App — caching for the repeated lookups;[DEMO] Aerzte App — caching for the repeated lookups;6,00;120,00;720,00;ja;BF8F589D-C209-96B7-E3F2-DA295802D5BB
+18.08.2026;Dienstag;Aerzte App;[DEMO] Aerzte App — mobile layout for the results list;[DEMO] Aerzte App — mobile layout for the results list;4,00;120,00;480,00;ja;7561AA35-7068-524C-1F87-F8A1524A6643
+18.08.2026;Dienstag;Work-hour-tracker;[DEMO] Work-hour-tracker — edit-in-place for time entries;[DEMO] Work-hour-tracker — edit-in-place for time entries;2,00;100,00;200,00;ja;0C5FACEA-C4BB-66A9-BD59-D91777192BE3
+19.08.2026;Mittwoch;Aerzte App;[DEMO] Aerzte App — wrote up the query model for the handover;[DEMO] Aerzte App — wrote up the query model for the handover;4,00;120,00;480,00;ja;BCC7BF95-7D09-2CB6-905F-29894AE0D068
+19.08.2026;Mittwoch;Fabric Demo;[DEMO] Fabric Demo — notebook for the lakehouse overview;[DEMO] Fabric Demo — notebook for the lakehouse overview;2,00;90,00;180,00;ja;2776F41A-58FC-7D92-362F-9DBF78345C18
+20.08.2026;Donnerstag;Fabric Demo;[DEMO] Fabric Demo — prepared the demo walkthrough;[DEMO] Fabric Demo — prepared the demo walkthrough;2,00;90,00;180,00;ja;98DBE292-5D85-4108-11C6-D049F8E82EE8
+20.08.2026;Donnerstag;Work-hour-tracker;[DEMO] Work-hour-tracker — per-person project rates;[DEMO] Work-hour-tracker — per-person project rates;6,00;100,00;600,00;ja;535B741B-0FC9-5652-A225-CC7DC3894872
+24.08.2026;Montag;Aerzte App;[DEMO] Aerzte App — built the specialty search filter;[DEMO] Aerzte App — built the specialty search filter;6,00;120,00;720,00;ja;4E6F7CC1-71EE-3E87-D20D-484224234DD3
+25.08.2026;Dienstag;Work-hour-tracker;[DEMO] Work-hour-tracker — deployment pipeline cleanup;[DEMO] Work-hour-tracker — deployment pipeline cleanup;6,00;100,00;600,00;ja;D21297AB-E22B-8336-AF2F-8F9E16A39C8B
+26.08.2026;Mittwoch;Fabric Demo;[DEMO] Fabric Demo — report layout for the summary page;[DEMO] Fabric Demo — report layout for the summary page;2,00;90,00;180,00;ja;A3848A67-3CC2-47E7-9C99-498A16DAF18C
+26.08.2026;Mittwoch;Work-hour-tracker;[DEMO] Work-hour-tracker — reworked the month navigation;[DEMO] Work-hour-tracker — reworked the month navigation;4,00;100,00;400,00;ja;93139315-43FC-66FC-E7A7-BDAA86A0B7F8
+27.08.2026;Donnerstag;Fabric Demo;[DEMO] Fabric Demo — refreshed the sample dataset;[DEMO] Fabric Demo — refreshed the sample dataset;3,00;90,00;270,00;ja;A50B1A44-6819-6896-3BAD-2B043061A8E2
+SUMME;;;;;88,00;;9810,00;;
