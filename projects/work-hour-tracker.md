@@ -4,7 +4,7 @@ Time tracking for a small consultancy, where the database — not the app — is
 
 Full write-up · completed August 2026 · [back to portfolio](../README.md)
 
-**[Screens](#screens)** · **[Architecture](#architecture)** · **[Results](#results-in-detail)** · **[Security deep-dive →](work-hour-tracker/security.md)** · **[The agent layer →](work-hour-tracker/agentic-layer.md)** · **[The incident →](work-hour-tracker/data-incident.md)**
+**[Screens](#screens)** · **[Claude Code skills](#claude-code-skills)** · **[Architecture](#architecture)** · **[Results](#results-in-detail)** · **[Security deep-dive →](work-hour-tracker/security.md)** · **[The incident →](work-hour-tracker/data-incident.md)**
 
 > **Why there is nothing to click.** The app runs inside a Microsoft Fabric workspace, behind Entra sign-in, on a working consultancy's billing data. There is no anonymous URL to hand you. What follows instead: annotated screenshots of the app and of the agent tooling, taken against a **demo database whose every row is invented** and whose every time entry labels itself `[DEMO]`. No source code is published — see [NOTICE](../NOTICE.md).
 
@@ -71,20 +71,109 @@ Everyone tracked their own hours their own way. Three things broke as a result:
 
 </details>
 
-The same data, from a terminal conversation — the monthly statement, the planning review, and logging hours in plain language — is on its own page: **[the agent layer →](work-hour-tracker/agentic-layer.md)**
+## Claude Code skills
 
-## Sample output
+The screens above are one way into this data. This is the other: three [Claude Code](https://claude.com/claude-code) skills that read and write the same Fabric SQL database from a terminal conversation — and, for two of them, produce a finished document at the end of it.
 
-There is no live app to open, but there are the documents it produces. Six of them, for one person and one month, generated from the demo database and committed here unedited: **[samples/ →](work-hour-tracker/samples/)**
+**Why they go underneath the app rather than through it.** The deployed Data API only supports interactive browser sign-in — there is no device-code flow and no service principal a command-line tool could use. So the skills sit *beneath* it and talk to Fabric SQL directly, through one 1 790-line Node CLI:
 
-| File | What it is |
+```
+   Person, in Claude Code                 ┌── az login (as themselves)
+        │  "log 3h on Fabric Demo today"  │   short-lived Entra token,
+        ▼                                 │   no stored password
+   the work-hours CLI ─────────────────────┘
+        │  identity = SUSER_SNAME() from the CONNECTION, never from config
+        ▼
+   Fabric SQL ── filtered by row-level security
+```
+
+Two consequences, both deliberate. **Nobody can become someone else by editing a text file** — the caller's identity comes from the authenticated database connection, so colleagues share one checkout and each sees only their own hours, with no per-person setup. And because this path bypasses the app's policy engine by construction, [the database needed its own copy of the access rule](work-hour-tracker/security.md).
+
+Every screenshot below is a real run against the demo database.
+
+---
+
+### 1 · `work-hours` — read and write
+
+The general-purpose one. Projects, time entries and monthly plans: list, add, edit, delete, summarise by project, day, week or month, plus a fenced read-only SQL escape hatch for anything the fixed commands do not cover.
+
+![Logging two entries in plain language and reading them back](work-hour-tracker/media/skill-work-hours-01-log-entry.png)
+
+Two things in that run matter more than the write itself.
+
+**It reads back what it wrote**, rather than reporting success from an exit code — and the read-back is where the three-stage rate model becomes visible: Fabric Demo froze at **90 €/h**, the *personal* `ProjectRates` value, not the 80 €/h suggested on the project row.
+
+**It reported its own side effects.** It flagged that it had added the `[DEMO]` prefix without being asked and said why, and it noticed the sandbox had drifted from its documented seed — 52 entries and 9 plan rows against a documented 50 and 6 — and named the two commands that restore it. Neither was requested. An agent with database write access that only tells you what you asked about is an agent you cannot audit.
+
+---
+
+### 2 · `monthly-statement` — the billing and statutory documents
+
+Turns a month of time entries into four files: the billing statement, the Austrian statutory working-time record, and both as data.
+
+**It asks before it runs, and prices every option.** A wrong VAT rate makes the whole document unusable, so it is a question rather than a default — with each answer's consequence worked out before you choose:
+
+![The skill asking which VAT treatment to apply, each option costed out](work-hour-tracker/media/skill-statement-01-vat-question.png)
+
+**Then it checks its own work against an independent query:**
+
+![The finished statement, cross-checked and reconciled](work-hour-tracker/media/skill-statement-02-result.png)
+
+The number that matters there is not the €9,810. It is the line beneath it — the document's totals re-derived by a **different command** (`wht.mjs summary --month`) and compared: 22 entries, 88.00 h, identical, rounding difference €0.00, all 11 internal checks green.
+
+That is the rule the skill enforces on the model driving it: **calculate nothing by hand.** Every number in the document comes from the script's JSON output; anything missing is written in as an open point, never estimated. A report where the model did the arithmetic is a report nobody can check.
+
+#### What it produced
+
+| Document | What to look at |
 |---|---|
-| [`abrechnung-demo-2026-08.md`](work-hour-tracker/samples/abrechnung-demo-2026-08.md) | The monthly billing statement — hours by project and by task, frozen rates, net/VAT/gross, then **eleven plausibility checks and seven numbered assumptions** |
-| [`zeitaufzeichnung-demo-2026-08.md`](work-hour-tracker/samples/zeitaufzeichnung-demo-2026-08.md) | The Austrian statutory working-time record (§ 26 Abs 3 AZG) — target against actual, day by day, with the balance that goes to payroll |
-| [`timesheet-demo-2026-08.csv`](work-hour-tracker/samples/timesheet-demo-2026-08.csv) · [`zeitaufzeichnung-demo-2026-08.csv`](work-hour-tracker/samples/zeitaufzeichnung-demo-2026-08.csv) | The same content as data. German-Excel compatible — UTF-8 with BOM, semicolons, decimal commas |
-| [`planungsreview-demo-2026-08.md`](work-hour-tracker/samples/planungsreview-demo-2026-08.md) · [`monatsplan-demo-2026-09.md`](work-hour-tracker/samples/monatsplan-demo-2026-09.md) | The month in review, and the plan that came out of it and was written back to the database |
+| **[`abrechnung-demo-2026-08.md`](work-hour-tracker/samples/abrechnung-demo-2026-08.md)** | The billing statement. **Section 7** is the reason to open it: eleven plausibility checks, each stated and ticked — nothing on an Austrian public holiday, no weekend bookings, no day over 12 h, and a reconciliation proving timesheet = task = project = total at **0,00 € rounding difference**. Then seven numbered assumptions, including the honest one — *the schema has no task entity, so the description is used as the task* |
+| **[`zeitaufzeichnung-demo-2026-08.md`](work-hour-tracker/samples/zeitaufzeichnung-demo-2026-08.md)** | The statutory record — a *Saldenaufzeichnung* under **§ 26 Abs 3 AZG**, which permits recording only the duration worked per day. 21 working days × 4,8 h = **100,80 h target** against **88,00 h actual**, balance **−12,80 h** to payroll. Its notes flag that one day exceeded six hours, obliging a § 11 break that a balance record does not capture |
+| **[`timesheet-demo-2026-08.csv`](work-hour-tracker/samples/timesheet-demo-2026-08.csv)** · **[`zeitaufzeichnung-demo-2026-08.csv`](work-hour-tracker/samples/zeitaufzeichnung-demo-2026-08.csv)** | The same content as data. German-Excel compatible — UTF-8 with BOM, semicolons, decimal commas, CRLF |
 
-Markdown and CSV only — never HTML or PDF. One renderer per document means there is no second generator to drift out of step with the first.
+Both formats of the working-time record render from **one** model, so they cannot disagree. **Markdown and CSV only — never HTML or PDF**: one renderer per document means there is no second generator to drift out of step with the first.
+
+---
+
+### 3 · `month-planning` — review, then questions, then plan
+
+Three steps in a fixed order, and the order is the design. **The questions come after the review, because the review is what makes them answerable** — asking first is asking into the dark.
+
+The script computes every number: working days, deviations, fulfilment rates, trends, and its own warnings. The narrative half — *what was actually achieved* — is written from the notes on the entries, and that half is the model's job.
+
+Then four questions, and **every option carries the number behind it**:
+
+![Capacity: how many hours to plan, each option derived from a different reading of the data](work-hour-tracker/media/skill-planning-01-capacity.png)
+
+![An anomaly the script found on its own — four Fridays with no bookings — turned into a question](work-hour-tracker/media/skill-planning-04-fridays.png)
+
+That second one is the interesting one. Nobody asked it to look for empty weekdays; the script flags `unbooked-workdays` by itself, and the answer changes the arithmetic of the entire plan — four non-working Fridays means September has **18 effective days, not 22**, and every line gets sized against 18.
+
+<details>
+<summary>The other two questions — a chronically missed project, and where the focus should go</summary>
+
+![A project under 60% of plan two months running, and four ways to respond](work-hour-tracker/media/skill-planning-02-chronic-miss.png)
+
+![Where the focus should go, with each project's two-month history attached](work-hour-tracker/media/skill-planning-03-focus.png)
+
+</details>
+
+**Writing the plan back**, with a seatbelt: `--total` is the expected sum, and if the distribution does not add up to it, **nothing is written at all**. Afterwards the rows are read back out of the database and compared.
+
+![The finished plan, written and read back, both warnings closed](work-hour-tracker/media/skill-planning-05-result.png)
+
+It also did two things it was not asked to do, and *announced* both rather than performing them quietly: it pushed back on the focus choice, pointing out that the chosen project had won every contest for leftover hours in both prior months; and it recorded the evidence for how the hours should be shaped — two six-hour blocks produced real work in August while four separate two-hour slots did not, so the plan assumes two full days a week rather than 2.8 hours spread daily. **An agent that quietly adjusts your numbers is worse than one that refuses.**
+
+#### What it produced
+
+| Document | What to look at |
+|---|---|
+| **[`planungsreview-demo-2026-08.md`](work-hour-tracker/samples/planungsreview-demo-2026-08.md)** | The review. **Section 3** — *what was achieved* — is the half written from the entry notes rather than computed, and it is where the split between script and model is easiest to see: it reads eleven entries and concludes a feature went from working to finished, which is not something a query can say |
+| **[`monatsplan-demo-2026-09.md`](work-hour-tracker/samples/monatsplan-demo-2026-09.md)** | The plan that came out of it and was written to the database — including the two objections above, recorded as flags rather than applied as edits |
+
+---
+
+All six documents, with their framing: **[samples/ →](work-hour-tracker/samples/)** · The design detail behind the skills — the identity rule, the SQL escape hatch and how it is fenced: **[the agent layer →](work-hour-tracker/agentic-layer.md)**
 
 ## Architecture
 
