@@ -1,332 +1,102 @@
 # Work hour tracker
 
-Time tracking for a small consultancy, where the database — not the app — is the product surface: usable from a browser, from T-SQL, and from a Claude Code session.
+How a small consultancy moved its billable hours out of scattered spreadsheets and into one shared database — and what it took to keep everyone's numbers private and correct.
 
-Full write-up · completed August 2026 · [back to portfolio](../README.md)
+*Completed August 2026* · [back to portfolio](../README.md)
 
-**[Screens](#screens)** · **[Claude Code skills](#claude-code-skills)** · **[Architecture](#architecture)** · **[Results](#results-in-detail)** · **[Security deep-dive →](work-hour-tracker/security.md)** · **[The incident →](work-hour-tracker/data-incident.md)**
+**Chapters** · [One place for everyone's hours](#one-place-for-everyones-hours) · [A raise shouldn't rewrite last year](#a-raise-shouldnt-rewrite-last-year) · [Logging hours by just saying so](#logging-hours-by-just-saying-so) · [Your hours are yours](#your-hours-are-yours) · [What I'd tell the next person](#what-id-tell-the-next-person)
 
-> **Why there is nothing to click.** The app runs inside a Microsoft Fabric workspace, behind Entra sign-in, on a working consultancy's billing data. There is no anonymous URL to hand you. What follows instead: annotated screenshots of the app and of the agent tooling, taken against a **demo database whose every row is invented** and whose every time entry labels itself `[DEMO]`. No source code is published — see [NOTICE](../NOTICE.md).
+> **The short version**
+>
+> **Outcome** · The whole team's hours, rates and monthly plans now live in one database on Microsoft Fabric. People log time in a web app, or by typing a sentence to an AI assistant, and both end up in exactly the same place.
+>
+> **Finding** · Building the app was the easy half. The hard half was keeping one privacy rule true through two different doors into the data: the app, and direct access to the database.
+>
+> **Recommendation** · Treat the database, not the app, as the privacy boundary, and enrol every colleague in its rules before promising anyone that their hours are private.
 
----
-
-## The problem
-
-Everyone tracked their own hours their own way. Three things broke as a result:
-
-1. **No shared answer.** Per-client and per-month totals required collecting spreadsheets from people.
-2. **Rewritten history.** When an hourly rate changed, the spreadsheet formula recalculated *everything* — including finished, invoiced work.
-3. **Logging friction.** Time gets logged when it is cheap to log. Opening a file and finding the right row is not cheap; hours were reconstructed days later from memory.
-
-## Outcome & recommendation
-
-**Outcome**
-
-- One Fabric SQL database holds projects, time entries, per-person rates and monthly plans behind Entra sign-in — reporting is a query, not a collection exercise.
-- Two write paths, one data shape: the web app, and a Claude Code plugin ("log 3h on Acme today") driven by a Node CLI. Both stamp the same four owner columns, so rows written from the terminal are indistinguishable from rows written in the browser.
-- Earnings are point-in-time correct: each time entry carries a frozen copy of the rate that applied when it was logged.
-- Per-person data isolation is enforced in the database itself, not only in the app.
-
-**Recommendation**
-
-- **State the privacy boundary exactly, then close it.** The row-level policy is an *allowlist* over enrolled logins — an unenrolled login (workspace admin or owner) is not filtered at all. Enrol every colleague, and run `rls --status` before telling anyone their rows are private.
-- **Give the app its own service principal.** The whole allowlist exists because the app's data backend connects to SQL as the *workspace owner* — a real person — so a deny-by-default policy would catch it and blank the app for everyone. With a service principal, that person can be enrolled like anybody else and the policy can close. *(The policy itself is now complete: 25 predicates across all 5 owner-scoped tables — see the [security deep-dive](work-hour-tracker/security.md).)*
-- **Move the plugin repo to the organisation account.** It lives under a personal account today; the transfer keeps history, survives an owner leaving, and is a precondition for org-wide distribution.
-- **Before adding analytics, add tests.** The next feature should not be the first thing this codebase relies on CI for.
-
-## Screens
-
-*All screenshots are of the running app, signed in against the demo database. Every note visible in the data begins with `[DEMO]` — that prefix is a property of the seeded dataset, and it is why these screenshots can be published at all.*
-
-**Dashboard** — four KPIs, the week as a bar chart, hours by project in each project's own stored colour, and week-by-week small multiples where hours are *drawn* and money is *written*, so two measures share a card without sharing a scale. All five week cards share one maximum, so the weeks compare honestly.
-
-![Dashboard: KPI cards, weekly bar chart, hours by project, and week-by-week cards](work-hour-tracker/media/app-02-dashboard.png)
-
-**Monthly project hours** — the plan/actual view. A scatter of planned against actual with the dashed *actual = planned* diagonal and a least-squares trend line, progress rings that turn rosy when a project goes over plan, and the same numbers again as a table because a gauge is not a figure you can check.
-
-![Monthly project hours: planned-vs-actual scatter, progress rings, and the underlying table](work-hour-tracker/media/app-06-monthly-project-hours.png)
-
-**Time entries** — everything logged, newest first, editable in place. `Edit` rather than delete-and-re-add is a deliberate constraint: re-adding an entry would lose its id, its notes and its frozen rate, silently repricing old work at today's rate.
-
-![Time entries: the full list with inline edit and delete, every note prefixed DEMO](work-hour-tracker/media/app-04-time-entries.png)
-
-**Projects** — where the rate model becomes visible. The rate is *yours*: everyone on a shared project sets their own, and nobody sees anyone else's. Sharing is a separate act from creating, and the rate you set stays yours whoever else joins.
-
-![Projects: per-person rates, sharing, and colour assignment](work-hour-tracker/media/app-05-projects.png)
-
-**Monthly planning** — planned hours per project per month, saved as soon as a cell loses focus.
-
-![Monthly planning: the twelve-month editable grid](work-hour-tracker/media/app-07-planning.png)
-
-<details>
-<summary>Two more — new entry, and the sign-in gate</summary>
-
-**New time entry.** The rate in force is resolved and frozen onto the row at this moment, which is what makes historical earnings immutable.
-
-![New time entry form](work-hour-tracker/media/app-03-new-entry.png)
-
-**The sign-in gate.** No password is ever handled by this app — sign-in is brokered to Microsoft Entra ID through the Fabric portal.
-
-![Sign in with Microsoft](work-hour-tracker/media/app-01-signin.png)
-
-</details>
-
-## Claude Code skills
-
-The screens above are one way into this data. This is the other: three [Claude Code](https://claude.com/claude-code) skills that read and write the same Fabric SQL database from a terminal conversation — and, for two of them, produce a finished document at the end of it.
-
-**Why they go underneath the app rather than through it.** The deployed Data API only supports interactive browser sign-in — there is no device-code flow and no service principal a command-line tool could use. So the skills sit *beneath* it and talk to Fabric SQL directly, through one 1 790-line Node CLI:
-
-```
-   Person, in Claude Code                 ┌── az login (as themselves)
-        │  "log 3h on Fabric Demo today"  │   short-lived Entra token,
-        ▼                                 │   no stored password
-   the work-hours CLI ─────────────────────┘
-        │  identity = SUSER_SNAME() from the CONNECTION, never from config
-        ▼
-   Fabric SQL ── filtered by row-level security
-```
-
-Two consequences, both deliberate. **Nobody can become someone else by editing a text file** — the caller's identity comes from the authenticated database connection, so colleagues share one checkout and each sees only their own hours, with no per-person setup. And because this path bypasses the app's policy engine by construction, [the database needed its own copy of the access rule](work-hour-tracker/security.md).
-
-Every screenshot below is a real run against the demo database.
+> **Why there is nothing to click.** The app runs inside a company's Microsoft Fabric workspace, behind company sign-in, on real billing data, so there is no public link to hand you. Every screenshot here was taken against a demo database whose every row is invented. No source code is published — see [NOTICE](../NOTICE.md).
 
 ---
 
-### 1 · `work-hours` — read and write
+At the end of every month, a small consultancy needed the answer to one simple question: *how many hours did we put on this client, and what are they worth?*
 
-The general-purpose one. Projects, time entries and monthly plans: list, add, edit, delete, summarise by project, day, week or month, plus a fenced read-only SQL escape hatch for anything the fixed commands do not cover.
+Nobody could answer it quickly. Everyone kept their hours in their own spreadsheet, in their own way, so the answer meant collecting files from colleagues and adding them up by hand.
 
-![Logging two entries in plain language and reading them back](work-hour-tracker/media/skill-work-hours-01-log-entry.png)
+The spreadsheets had two quieter problems as well. Changing an hourly rate recalculated every row — including work that had already been invoiced — so last year's money could change without anyone noticing. And because opening the file and finding the right row took effort, hours were often written down days later, from memory.
 
-Two things in that run matter more than the write itself.
+This is the story of replacing those spreadsheets, and of the part that turned out to be far harder than building the app.
 
-**It reads back what it wrote**, rather than reporting success from an exit code — and the read-back is where the three-stage rate model becomes visible: Fabric Demo froze at **90 €/h**, the *personal* `ProjectRates` value, not the 80 €/h suggested on the project row.
+## One place for everyone's hours
 
-**It reported its own side effects.** It flagged that it had added the `[DEMO]` prefix without being asked and said why, and it noticed the sandbox had drifted from its documented seed — 52 entries and 9 plan rows against a documented 50 and 6 — and named the two commands that restore it. Neither was requested. An agent with database write access that only tells you what you asked about is an agent you cannot audit.
+The answer was a web app: each person logs their hours against a project, and a dashboard adds everything up on its own.
 
----
+![The dashboard: this week's hours, hours per project, and what they earned](work-hour-tracker/media/app-02-dashboard.png)
+*The dashboard — this week as a bar chart, hours per project, and what they earned. Every number comes from the invented demo data.*
 
-### 2 · `monthly-statement` — the billing and statutory documents
+It runs on **Microsoft Fabric**, Microsoft's platform for company data. That choice mattered for two reasons. The company already signs in with Microsoft accounts, so the app never sees or stores a password — you sign in exactly the way you sign in to Outlook. And the hours land in a real SQL database inside the company's own cloud, which can be asked questions directly, without going through the app at all.
 
-Turns a month of time entries into four files: the billing statement, the Austrian statutory working-time record, and both as data.
+The surprising part is how little had to be written by hand. I described the data — a project has a name and a colour, a time entry has a date, a number of hours and a note — and a tool called **Rayfin** turned that description into the database tables, the web API the app talks to, the sign-in, and the hosting. The only part I wrote myself is the part you see: seven pages, from the dashboard and the entry form to a monthly plan and a view for the manager.
 
-**It asks before it runs, and prices every option.** A wrong VAT rate makes the whole document unusable, so it is a question rather than a default — with each answer's consequence worked out before you choose:
+→ **[Technical details: One place for everyone's hours](work-hour-tracker/app.md)** — every screen, the architecture diagram, the tech stack and why each piece was chosen
 
-![The skill asking which VAT treatment to apply, each option costed out](work-hour-tracker/media/skill-statement-01-vat-question.png)
+## A raise shouldn't rewrite last year
 
-**Then it checks its own work against an independent query:**
+In a spreadsheet, the hourly rate is one cell. Change it, and every formula that uses it recalculates — including work that was invoiced months ago.
 
-![The finished statement, cross-checked and reconciled](work-hour-tracker/media/skill-statement-02-result.png)
+So the tracker never looks the rate up later. The moment you log an hour, it writes down the rate that applies right then, on that entry, and keeps it. Raise your rate tomorrow and only tomorrow's hours get the new price; everything already logged keeps the money it actually earned.
 
-The number that matters there is not the €9,810. It is the line beneath it — the document's totals re-derived by a **different command** (`wht.mjs summary --month`) and compared: 22 entries, 88.00 h, identical, rounding difference €0.00, all 11 internal checks green.
+The same thinking decided who owns what. A project is shared, because everyone works for the same clients. A rate is personal: two people on one project can charge different amounts, and neither can see the other's. That is why the rate lives in its own table instead of on the project — if it sat on the project, sharing the project would share the money too.
 
-That is the rule the skill enforces on the model driving it: **calculate nothing by hand.** Every number in the document comes from the script's JSON output; anything missing is written in as an open point, never estimated. A report where the model did the arithmetic is a report nobody can check.
+![The Projects page: every person sets their own rate on a shared project](work-hour-tracker/media/app-05-projects.png)
+*The Projects page — the rate shown is yours alone, whoever else works on the same project.*
 
-#### What it produced
+One small rule protects all of this: entries are edited, never deleted and added again. A re-added entry would pick up today's rate and quietly change what old work was worth.
 
-| Document | What to look at |
-|---|---|
-| **[`abrechnung-demo-2026-08.md`](work-hour-tracker/samples/abrechnung-demo-2026-08.md)** | The billing statement. **Section 7** is the reason to open it: eleven plausibility checks, each stated and ticked — nothing on an Austrian public holiday, no weekend bookings, no day over 12 h, and a reconciliation proving timesheet = task = project = total at **0,00 € rounding difference**. Then seven numbered assumptions, including the honest one — *the schema has no task entity, so the description is used as the task* |
-| **[`zeitaufzeichnung-demo-2026-08.md`](work-hour-tracker/samples/zeitaufzeichnung-demo-2026-08.md)** | The statutory record — a *Saldenaufzeichnung* under **§ 26 Abs 3 AZG**, which permits recording only the duration worked per day. 21 working days × 4,8 h = **100,80 h target** against **88,00 h actual**, balance **−12,80 h** to payroll. Its notes flag that one day exceeded six hours, obliging a § 11 break that a balance record does not capture |
-| **[`timesheet-demo-2026-08.csv`](work-hour-tracker/samples/timesheet-demo-2026-08.csv)** · **[`zeitaufzeichnung-demo-2026-08.csv`](work-hour-tracker/samples/zeitaufzeichnung-demo-2026-08.csv)** | The same content as data. German-Excel compatible — UTF-8 with BOM, semicolons, decimal commas, CRLF |
+→ **[Technical details: A raise shouldn't rewrite last year](work-hour-tracker/data-model.md)** — the six tables, the three places a rate lives, and the code that keeps them in agreement
 
-Both formats of the working-time record render from **one** model, so they cannot disagree. **Markdown and CSV only — never HTML or PDF**: one renderer per document means there is no second generator to drift out of step with the first.
+## Logging hours by just saying so
 
----
+Opening a web page to log two hours is still a small chore. So there is a second way in: you type a sentence to an AI assistant — *"log 3 hours on Fabric Demo today"* — and it is done.
 
-### 3 · `month-planning` — review, then questions, then plan
+This runs in **Claude Code**, an AI assistant that works in the terminal. I gave it three **skills**: written instructions plus a small program that talks to the same database as the app. Rows written this way look exactly like rows written in the browser.
 
-Three steps in a fixed order, and the order is the design. **The questions come after the review, because the review is what makes them answerable** — asking first is asking into the dark.
+![Logging two entries in plain language, then reading them back](work-hour-tracker/media/skill-work-hours-01-log-entry.png)
+*Two entries logged with one sentence each, then read back from the database to prove they landed.*
 
-The script computes every number: working days, deviations, fulfilment rates, trends, and its own warnings. The narrative half — *what was actually achieved* — is written from the notes on the entries, and that half is the model's job.
+- **`work-hours`** logs, edits and summarises hours. After every change it reads the data back, instead of just saying "done".
+- **`monthly-statement`** turns a month of hours into the documents a month ends with: the billing statement, and the working-time record Austrian law requires. Before it starts, it asks the questions that would make the document wrong if guessed — such as which VAT rate applies.
+- **`month-planning`** reviews last month, then asks how to plan the next one. In the demo it noticed, without being asked, that four Fridays had no hours at all — and asked whether that was on purpose, because the answer changes the whole plan.
 
-Then four questions, and **every option carries the number behind it**:
+The rule I care most about is the one all three follow: **the AI calculates nothing by hand.** Every number comes from the program, and the statement checks its own totals against a second, independent query before it reports anything. A document where the AI did the maths is a document nobody can check.
 
-![Capacity: how many hours to plan, each option derived from a different reading of the data](work-hour-tracker/media/skill-planning-01-capacity.png)
+→ **[Technical details: Logging hours by just saying so](work-hour-tracker/agentic-layer.md)** — all three skills step by step, and how the database connection decides who you are · **[The documents they produced →](work-hour-tracker/samples/)**
 
-![An anomaly the script found on its own — four Fridays with no bookings — turned into a question](work-hour-tracker/media/skill-planning-04-fridays.png)
+## Your hours are yours
 
-That second one is the interesting one. Nobody asked it to look for empty weekdays; the script flags `unbooked-workdays` by itself, and the answer changes the arithmetic of the entire plan — four non-working Fridays means September has **18 effective days, not 22**, and every line gets sized against 18.
+Everyone's hours in one place raises an obvious question: who can see them? The rule fits in one sentence. **You see your own hours, the manager sees everyone's, and nobody can change anyone else's — the manager included.** A manager may look, never touch.
 
-<details>
-<summary>The other two questions — a chronically missed project, and where the focus should go</summary>
+Writing that rule down was easy. Keeping it true was not, because there are now two doors into the data. The app is one door, and it checks the rule before it shows anything. The AI assistant is the other: it goes straight to the database and never passes through the app's checks. A rule that guards only one door does not guard anything.
 
-![A project under 60% of plan two months running, and four ways to respond](work-hour-tracker/media/skill-planning-02-chronic-miss.png)
+So the rule is enforced twice — once in the app, and once in the database itself, where it applies no matter how someone gets in. To stop the two copies from slowly drifting apart, both are generated from one small file, and a status command compares them and complains when they no longer match. In the database, that one sentence became 25 separate rules across the five tables that hold personal data *(measured)*.
 
-![Where the focus should go, with each project's two-month history attached](work-hour-tracker/media/skill-planning-03-focus.png)
+I also wrote down where the protection ends, instead of hiding it. The names of projects are visible to everyone who can sign in, even projects they do not work on. And the database rules protect colleagues from each other, not from the people who administer the workspace: the app itself connects to the database as the workspace owner, a real person, so a rule strict enough to catch administrators would lock the app out for everybody. The fix is known — give the app an account of its own.
 
-</details>
+→ **[Technical details: Your hours are yours](work-hour-tracker/security.md)** — the rule as code in both layers, the five kinds of database rule and what each one stops, and both exceptions in full
 
-**Writing the plan back**, with a seatbelt: `--total` is the expected sum, and if the distribution does not add up to it, **nothing is written at all**. Afterwards the rows are read back out of the database and compared.
+## What I'd tell the next person
 
-![The finished plan, written and read back, both warnings closed](work-hour-tracker/media/skill-planning-05-result.png)
+The spreadsheets are gone. Hours, rates and plans live in one database; a monthly total is a question you ask it, not a pile of files you collect; and last year's earnings stay exactly what they were.
 
-It also did two things it was not asked to do, and *announced* both rather than performing them quietly: it pushed back on the focus choice, pointing out that the chosen project had won every contest for leftover hours in both prior months; and it recorded the evidence for how the hours should be shaped — two six-hour blocks produced real work in August while four separate two-hour slots did not, so the plan assumes two full days a week rather than 2.8 hours spread daily. **An agent that quietly adjusts your numbers is worse than one that refuses.**
+If someone picked this project up tomorrow, I would tell them four things:
 
-#### What it produced
+1. **The database is the real privacy boundary, not the app.** Before promising anyone their hours are private, add every colleague to the database rules and run the status check.
+2. **Give the app its own account.** Most of the exceptions above exist because the app runs as a person. With an account of its own, the last gap in the rules can close.
+3. **Add automated tests before adding features.** Everything so far was checked by hand, and every bug so far was found by installing and using the tool for real. That does not scale.
+4. **Move the assistant's code into the company's account.** It still lives under a personal account, which would not survive its owner leaving.
 
-| Document | What to look at |
-|---|---|
-| **[`planungsreview-demo-2026-08.md`](work-hour-tracker/samples/planungsreview-demo-2026-08.md)** | The review. **Section 3** — *what was achieved* — is the half written from the entry notes rather than computed, and it is where the split between script and model is easiest to see: it reads eleven entries and concludes a feature went from working to finished, which is not something a query can say |
-| **[`monatsplan-demo-2026-09.md`](work-hour-tracker/samples/monatsplan-demo-2026-09.md)** | The plan that came out of it and was written to the database — including the two objections above, recorded as flags rather than applied as edits |
+The next thing I would build is the analytics layer: a scheduled job that summarises hours and earnings into a Fabric lakehouse — Fabric's store for analysis data — with checks that the numbers are fresh and correct. The tracker collects the data; that layer would turn it into answers.
 
----
-
-All six documents, with their framing: **[samples/ →](work-hour-tracker/samples/)** · The design detail behind the skills — the identity rule, the SQL escape hatch and how it is fenced: **[the agent layer →](work-hour-tracker/agentic-layer.md)**
-
-## Architecture
-
-```mermaid
-flowchart TB
-    subgraph client["Frontend — src/ (React 19 + Vite + Tailwind)"]
-        gate["AuthGate — no sign-in, no app"]
-        pages["Pages · Dashboard · New Entry · Time Entries<br/>Projects · Monthly Planning · Team"]
-        bridge["RayfinClient — src/lib/rayfin.ts"]
-        gate --> pages --> bridge
-    end
-
-    subgraph agent["Agent path — Claude Code plugin"]
-        skill["work-hours skill"]
-        cli["Node CLI · wht.mjs + mssql"]
-        skill --> cli
-    end
-
-    subgraph fabric["Microsoft Fabric — deployed by rayfin up"]
-        api["Data API — generated from rayfin/data/*.ts"]
-        auth["Entra ID sign-in"]
-        db[("Fabric SQL · Projects · TimeEntries<br/>ProjectRates · ProjectMonthlyPlans · UserProfiles")]
-        rls["Row-level security — allowlist over sec.Enrollment"]
-        api --> db
-        rls --- db
-    end
-
-    bridge --> api
-    bridge --> auth
-    cli -- "T-SQL, token from az login" --> db
-```
-
-The frontend is the only part written by hand. The database, the CRUD API, the auth service and the static hosting are generated from the TypeScript entity files in `rayfin/data/` by `rayfin up`.
-
-## Tech stack
-
-| Layer | Tool | Why chosen |
-|---|---|---|
-| UI | React 19 · Vite · Tailwind 4 | Fast HMR in development and a plain static build that Fabric hosting can serve without a Node server |
-| Backend | Rayfin 1.33 (`@microsoft/rayfin-*`) | Entities are declared in TypeScript and compiled into tables plus a CRUD API — no hand-written CRUD to drift out of sync with the schema |
-| Auth | Microsoft Entra ID (Fabric brokered sign-in) | The company identity already exists; no password is ever stored or handled |
-| Storage | Fabric SQL (MSSQL) | Same tenant and capacity as the app, and reachable by ordinary T-SQL — which is what made the agent path possible at all |
-| Agent interface | Claude Code plugin + Node CLI (`mssql`) | Fabric sign-in is irreducibly browser-based (no device-code or service-principal flow), so a terminal tool cannot reuse the app's API and must talk to SQL directly |
-| Isolation | SQL row-level security | Enforcement had to live below the API, because the agent path bypasses the app's policies by construction |
-| Credentials | `az account get-access-token`, minted per run | Nothing secret at rest: no passwords, no connection secrets in the repo |
-
-## Data model
-
-Six tables. Every data table carries the same four owner columns — `user_email`, `user_name`, `user_first_name`, `user_last_name` — written together on each insert.
-
-| Table | Grain | Key columns |
-|---|---|---|
-| `Projects` | one row per project, **shared** — its `user_email` is a *created by* label, not an owner | `id`, `name`, `hourlyRate` *(suggested)*, `color` |
-| `TimeEntries` | one row per person per project per logged block | `id`, `date`, `hours`, `hourlyRate` *(frozen copy)*, `notes`, `project_id` |
-| `ProjectRates` | what one person charges on one project | `id`, `hourlyRate`, `project_id` |
-| `ProjectShares` | one project made visible to one other person | `id`, `project_id`, `shared_with` *(the invitee)*, `user_email` *(the sharer)* |
-| `ProjectMonthlyPlans` | one row per person per project per month | `id`, `month` (`YYYY-MM`), `plannedHours`, `project_id` |
-| `UserProfiles` | one row per person | source of truth for their real name; doubles as the team roster |
-
-None of those grains is a database constraint — the platform offers no `unique` option — so each is enforced in application code. That turned out to matter far more than expected: the `ProjectMonthlyPlans` grain, `(user_email, month, project_id)`, later became the only way to reconcile two diverged copies of the database. See [the incident](work-hour-tracker/data-incident.md).
-
-Two rules the model depends on:
-
-- **`user_email` is the only real identity.** The name columns are display text — blank on older rows, and two people can derive the same name. Every read filters, groups and joins on the email.
-- **Money lives in three places on purpose.** A project carries a *suggested* rate; a person's `ProjectRates` row is what they actually charge; and each time entry carries the rate frozen at logging time. Earnings therefore read as `COALESCE(t.hourlyRate, p.hourlyRate)`. The only event that re-stamps a frozen rate is moving an entry to a different project — the old copy is then the wrong project's money.
-
-## Implementation
-
-1. **Declare the data.** Entities in `rayfin/data/Project.ts` and `TimeEntry.ts`, listed in `schema.ts`; backend settings in `rayfin.yml`.
-2. **Deploy the backend.** `rayfin up` creates the tables, the Data API, the auth service and the static site; generated settings flow `rayfin/.env` → `.env.local` → the frontend at runtime.
-3. **Build the screens.** Dashboard (KPI cards), New Entry, Time Entries, Projects, Monthly Planning, Monthly Project Hours and Team — all behind an `AuthGate`, all data through one `RayfinClient`.
-4. **Stamp ownership once.** `src/lib/user.ts` writes the four owner columns on every insert; the CLI mirrors the same logic so both paths agree.
-5. **Build the agent path.** A `work-hours` Claude Code skill over `scripts/wht.mjs`: `whoami`, `projects`, `hours`, `summary`, `plans`, `add-entry`, `set-plan`, `edit-entry`, `edit-project`, `delete-entry`, and a read-only `query` escape hatch.
-6. **Enforce isolation in SQL.** A row-level policy compiled from `rayfin/data/access.json` and applied with `rls --apply`; `rls --status` reports coverage.
-7. **Onboard people.** An admin runs `grant-user --user <email>` once per colleague (table rights only, never `db_owner`); the colleague runs `az login --allow-no-subscriptions`, then `setup` and `whoami`.
-
-## Quality & testing
-
-Verified by hand end to end, from a clean install through to writes landing in the live database. The safety work sits in the tool design rather than in a test suite:
-
-- `setup --check` walks the whole chain — az login → config → driver → token → connectivity → row ownership — and reports where it breaks.
-- `--dry-run` on every write prints before → after without touching the database.
-- `query` accepts a single `SELECT` only, rejects DML/DDL, and runs inside a transaction that always rolls back. It is a guard-rail against accidents, not a security boundary.
-- Writes report the row count they actually affected and fail loudly on zero, so "it worked" is never inferred.
-- `WHT_USER_EMAIL` is an optional guard-rail: if it disagrees with the connected identity, the CLI refuses to run rather than show the wrong person's data.
-
-**Gap, stated plainly:** there is no automated test suite and no CI. That is the top item in [Limitations & next steps](#limitations--next-steps).
-
-## Results in detail
-
-- **Role-based authorisation was a dead end on this platform, and finding that out early saved building it twice.** *(measured)* Rayfin exposes exactly two roles, `anonymous` and `authenticated`; `claims.role` is defined only in `rayfin.yml`, which is static and app-wide; and API policies compare claims against columns on the same row, so "is this person a manager?" cannot be a subquery. Access control had to move down into SQL.
-- **The policy had to be an allowlist, not a denylist.** *(measured)* Filtering every login would have caught the app's own database identity and blanked the app for every user simultaneously. It therefore filters only logins enrolled in `sec.Enrollment` — which is exactly why an unenrolled admin is still unfiltered. That limitation is a consequence of the design, not an oversight.
-- **`SUSER_SNAME()` on a skill connection returns the real Entra UPN**, matching stored `user_email` values *(measured)* — the fact that makes SQL-side row filtering viable, and the reason the skill needs no per-person configuration.
-- **Three defects surfaced only under real installation, not review** *(measured)*: a setup probe that called `process.exit` instead of throwing, so `setup` told the user to run `setup`; a `^11.0.1` dependency spec silently pinned to an exact version because Windows `cmd.exe` eats `^`; and a home directory containing a space arriving as two arguments under `shell: true` (Node DEP0190).
-- **Plugin config cannot live beside the plugin.** *(measured)* Claude Code replaces the plugin cache directory wholesale on every version bump, and `$CLAUDE_PLUGIN_DATA` is not exported to skill-invoked bash — so the `~/.work-hours/` branch is what actually runs, not a fallback.
-- **An integrity check is not a backup, and I found that out the expensive way.** *(measured)* After migrating the database to a new Fabric workspace, one config file still pointed at the old one — so for **eight days** the app wrote to the new database while the CLI and both report scripts wrote to the old one. Both sides took real rows; neither was a subset of the other. **8 rows existed only in the old database.** The snapshots I had been calling a backup stored hashes and row counts, not rows: they could prove the divergence and could not have repaired it. Reconciling it needed a different tool from the one that did the migration, because four plan rows existed on both sides with identical content and different ids. → **[The full write-up](work-hour-tracker/data-incident.md)**
-
-## Repository structure
-
-```
-work-hour-tracker/
-├── src/                     frontend (hand-written)
-│   ├── pages/               Dashboard · NewTimeEntry · TimeEntries · Projects · MonthlyPlanning · Team
-│   ├── components/          AuthGate · Layout · KpiCard · FormField · ConfirmButton · charts
-│   └── lib/                 rayfin.ts (API bridge) · user.ts (owner stamping) · hours.ts · rates.ts
-├── rayfin/
-│   ├── data/                entity declarations + access.json (RLS input)
-│   └── rayfin.yml           backend settings
-└── architecture.md          plain-English system map
-
-agentic-work-tracker/        the Claude Code marketplace + plugin
-└── plugins/work-tracker/
-    └── skills/work-hours/   SKILL.md + scripts/wht.mjs (the CLI)
-```
-
-## Running it locally
-
-```bash
-# prerequisites: Node.js, Azure CLI, access to the Fabric workspace
-az login --allow-no-subscriptions   # Entra-only account: the flag is required
-npm install
-npm run dev                         # deploys backend changes, then serves the frontend
-```
-
-```text
-# the agent path, from Claude Code
-/plugin marketplace add <org>/agentic-work-tracker
-/plugin install work-tracker@agentic-work-tracker
-node scripts/wht.mjs setup && node scripts/wht.mjs whoami
-```
-
-## Design decisions & trade-offs
-
-| Decision | Rejected alternative | Why |
-|---|---|---|
-| Row-level security in SQL | Role-based API policies | The platform has no per-user role claim and its policies cannot subquery — the API layer physically cannot express "managers see everyone" |
-| Allowlist policy over enrolled logins | Deny-by-default for all logins | Deny-by-default catches the app's own service identity and blanks the app for everyone; the cost is that unenrolled admins stay unfiltered, and that limit is documented rather than hidden |
-| Frozen rate copied onto each entry | Join to the current rate at read time | A raise must not rewrite invoiced history; the duplication is the point |
-| A shared `Projects` table with the rate split out into `ProjectRates` | One rate column on the project | A project — its name and colour — is shared by nature; a rate is personal. With one column, sharing a project shared the money too, and two people could not work the same engagement at different rates |
-| Sharing as a join table (`ProjectShares`) | `shared_with: "a@x;b@x"` on the project row | Not taste — a policy can only compare a claim against a column *on the same row*: no `contains`, no subquery. A delimited list is physically unenforceable at the backend. **The data model was chosen by what the security layer can express** |
-| `edit-entry` / `edit-project` in place | Delete and re-add | Delete-and-re-add silently discards the id, untouched notes and the frozen rate |
-| Config in `~/.work-hours/` | Config beside the plugin | The plugin directory is deleted and re-copied on every version bump |
-| Direct SQL for the agent path | Reuse the app's Data API | Fabric sign-in is browser-only — no device-code or service-principal flow exists for a terminal tool |
-
-## Limitations & next steps
-
-- **No automated tests or CI.** Every defect so far was found by installing and using the thing. First priority.
-- **Project *names* are readable by any signed-in user.** A policy cannot check membership, so the app filters the project list and the backend does not. Hours, rates and plans are not exposed — but names are, and calling that "filtered in the UI" would be dishonest.
-- **Manager visibility is a literal email list** compiled into the policy. Fine for one team, wrong past a handful of people.
-- **Unenrolled logins are not filtered.** Workspace admins and owners read everything, by design of the allowlist.
-- **Onboarding is manual**: Node, the Azure CLI, and a one-off database grant per person.
-- **This is an OLTP application, not a pipeline.** The natural next build is the analytics layer — a scheduled aggregate of hours and earnings into a Fabric lakehouse, with freshness and quality checks.
-
+→ **[Technical details: What I'd tell the next person](work-hour-tracker/lessons.md)** — the design decisions and what was rejected, how the work was checked, the findings in detail, and every known limitation
 
 ---
 

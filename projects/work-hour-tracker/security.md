@@ -1,6 +1,8 @@
-# Security — one rule, enforced twice
+# Technical details — Your hours are yours
 
-[← Work hour tracker](../work-hour-tracker.md) · [Portfolio](../../README.md)
+*Security: one rule, enforced twice.*
+
+[← back to the story](../work-hour-tracker.md#your-hours-are-yours) · [Portfolio](../../README.md)
 
 **The rule, in one sentence:** you may read your own rows, plus everyone's if you are the manager; you may write only your own rows, manager included. *A manager may look, never touch.*
 
@@ -163,4 +165,4 @@ The fix, and the reason it has not been applied yet: give the Fabric item its ow
 - **Never let an application run as a person.** Everything awkward in section 4 follows from that one fact.
 - **Write the exceptions into the source, beside the code they excuse.** Both of the above live as long comments in the files that implement them. Six months later that is the difference between a documented trade-off and a bug nobody can explain.
 
-[← Work hour tracker](../work-hour-tracker.md) · [Portfolio](../../README.md)
+[← back to the story](../work-hour-tracker.md#your-hours-are-yours) · [Portfolio](../../README.md)

@@ -33,7 +33,7 @@ Stack
 
 ![The work hour tracker dashboard, running against the demo dataset](projects/work-hour-tracker/media/app-02-dashboard.png)
 
-**[Full write-up →](projects/work-hour-tracker.md)** · **[Screens →](projects/work-hour-tracker.md#screens)** · **[Claude Code skills →](projects/work-hour-tracker.md#claude-code-skills)** · **[Sample output →](projects/work-hour-tracker/samples/)** · **[Security →](projects/work-hour-tracker/security.md)** · **[The incident →](projects/work-hour-tracker/data-incident.md)**
+**[Full write-up →](projects/work-hour-tracker.md)** · **[Screens →](projects/work-hour-tracker/app.md#1-the-screens)** · **[Claude Code skills →](projects/work-hour-tracker/agentic-layer.md#2-the-three-skills-at-work)** · **[Sample output →](projects/work-hour-tracker/samples/)** · **[Security →](projects/work-hour-tracker/security.md)**
 
 *Live app is private — it holds colleague hours under company sign-in. Every figure above and in every screenshot comes from an invented demo dataset.*
 

@@ -19,7 +19,7 @@ These are the actual documents the app's tooling produces, for one person and on
 
 That is the discipline the skill enforces on the model driving it: **calculate nothing by hand.** Every number in the document comes from the script's JSON output. Anything missing is written in as an open point, never estimated.
 
-Section 3 is where the [three-stage rate model](../../work-hour-tracker.md#data-model) becomes visible: three projects, three different frozen rates, and the statement bills each hour at the rate that applied when it was logged rather than at today's rate.
+Section 3 is where the [three-stage rate model](../data-model.md#2-money-lives-in-three-places-on-purpose) becomes visible: three projects, three different frozen rates, and the statement bills each hour at the rate that applied when it was logged rather than at today's rate.
 
 ## The statutory side
 
@@ -43,7 +43,7 @@ The notes underneath it do the thing a compliance document should — they flag 
 | **[planungsreview-demo-2026-08.md](planungsreview-demo-2026-08.md)** | The review of the month that ended. English. |
 | **[monatsplan-demo-2026-09.md](monatsplan-demo-2026-09.md)** | The plan for the month that follows, as written to the database. |
 
-These two are the documents behind [the planning screenshots](../agentic-layer.md#5-month-planning--review-then-questions-then-plan). The order is fixed and deliberate — **review, then questions, then plan** — because the review is what makes the questions answerable.
+These two are the documents behind [the planning screenshots](../agentic-layer.md#month-planning--review-then-questions-then-plan). The order is fixed and deliberate — **review, then questions, then plan** — because the review is what makes the questions answerable.
 
 The split of labour is the interesting part. The script computes every number: working days, deviations, fulfilment rates, trends, and its own warnings (`chronic-miss` for a project under 60 % twice running, `unbooked-workdays` for empty weekdays). The narrative — *what was actually achieved* — is written from the notes on the entries, and that half is the model's job. Section 3 of the review is that half: it reads eleven entries and concludes the feature went from working to finished, which is not something a query can say.
 
