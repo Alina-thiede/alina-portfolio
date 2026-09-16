@@ -134,7 +134,7 @@ If someone picked this project up tomorrow, I would tell them four things:
 3. **Add automated tests before adding features.** Everything so far was checked by hand, and every bug so far was found by installing and using the tool for real. That does not scale.
 4. **Move the assistant's code into the company's account.** It still lives under a personal account, which would not survive its owner leaving.
 
-The next thing I would build is the analytics layer: a scheduled job that summarises hours and earnings into a Fabric lakehouse — Fabric's store for analysis data — with checks that the numbers are fresh and correct. I have not started it.
+I have not started the analytics layer. It is the next thing I would build: a scheduled job that summarises hours and earnings into a Fabric lakehouse — Fabric's store for analysis data — with checks that the numbers are fresh and correct. That is the piece that would let someone ask a question about a whole year without opening the app at all.
 
 → **[Technical details: What I'd tell the next person](work-hour-tracker/lessons.md)** — the design decisions and what was rejected, how the work was checked, the findings in detail, and every known limitation
 
