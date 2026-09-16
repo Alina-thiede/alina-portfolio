@@ -17,7 +17,7 @@ Enforcing that sentence took two independent systems, because there are two door
 | The Data API | the app, in a browser | compiled policies — **layer 1** |
 | Direct SQL | the `work-hours` CLI, `az`, anything with a connection | row-level security — **layer 2** |
 
-Layer 1 alone is not enough, because [the agent path](agentic-layer.md) goes underneath it. Layer 2 alone is not enough, because the app never touches SQL as the end user — its data backend connects as one identity for everybody.
+Layer 1 alone is not enough, because [the agent path](agentic-layer.md) goes underneath it. Layer 2 alone is not enough, because the app never touches SQL as the end user: its data backend connects as one identity for everybody.
 
 Two systems enforcing one sentence is a drift problem waiting to happen. The failure mode of a security control is *silence*: nothing breaks, nothing logs, nothing alerts, and one day somebody reads a row they should not have. So neither layer owns the rule.
 
@@ -94,7 +94,7 @@ export function ownerOrManager(claims: ClaimsDsl, ownerEmail: FieldRef): PolicyE
 
 **The constraint that shaped everything here:** a policy compiles to a predicate comparing the caller's claims against columns **on the same row**. It cannot look anything up — no subquery, no join, no *"is this person in the managers table?"*. And the two built-in roles cannot be extended, because custom claims are static and app-wide, so nothing can hand one person a `manager` claim and not another.
 
-That leaves two possible shapes, and this took the simpler one: the manager's address is baked into the compiled policy. The trade-off is honest — adding a manager is a code change plus a redeploy, not an edit in the app. For one manager who sees everybody, that is the right trade.
+That leaves two possible shapes, and this took the simpler one: the manager's address is baked into the compiled policy. The trade-off is honest: adding a manager is a code change plus a redeploy, not an edit in the app. For one manager who sees everybody, that is the right trade.
 
 The same constraint is why sharing is a join table rather than a list column. **The data model was chosen by what the policy engine can express.**
 
@@ -151,7 +151,7 @@ The predicates filter only logins listed in `sec.Enrollment`, and let every unre
 
 That looks backwards for a security control. The reason: **the app's data backend connects to SQL as the Fabric workspace owner** — measured on a live deployment, not assumed — so it authenticates as a real person rather than as a service principal. A filter that caught that identity would intersect with every other user's policy and blank the app for everybody at once.
 
-Failing open on unknown logins means the blast radius of a wrong guess is *"someone is not protected yet"*, not *"the product is down"*. It also costs less than it looks: an unenrolled identity can only reach this database by being a Fabric workspace admin or member, and those arrive as `db_owner` — who can simply drop the policy anyway.
+Failing open on unknown logins means the blast radius of a wrong guess is *"someone is not protected yet"*, not *"the product is down"*. It also costs less than it looks: an unenrolled identity can only reach this database by being a Fabric workspace admin or member, and those arrive as `db_owner`, who can simply drop the policy anyway.
 
 **This protects enrolled employees from each other. It is not a wall against a workspace administrator, and it is not sold as one.** Run `rls --status` before telling anyone what their privacy actually is.
 

@@ -22,7 +22,7 @@ At the end of every month, a small consultancy needed the answer to one simple q
 
 Nobody could answer it quickly. Everyone kept their hours in their own spreadsheet, in their own way, so the answer meant collecting files from colleagues and adding them up by hand.
 
-The spreadsheets had two quieter problems as well. Changing an hourly rate recalculated every row — including work that had already been invoiced — so last year's money could change without anyone noticing. And because opening the file and finding the right row took effort, hours were often written down days later, from memory.
+The spreadsheets had two quieter problems as well. Changing an hourly rate recalculated every row, including work that had already been invoiced, so last year's money could change without anyone noticing. And because opening the file and finding the right row took effort, hours were often written down days later, from memory.
 
 This is the story of replacing those spreadsheets, and of the part that turned out to be far harder than building the app.
 
@@ -36,14 +36,14 @@ The answer was a web app: each person logs their hours against a project, and a 
 ![The dashboard: this week's hours, hours per project, and what they earned](work-hour-tracker/media/app-02-dashboard.png)
 *The dashboard — this week as a bar chart, hours per project, and what they earned. Every number comes from the invented demo data.*
 
-It runs on **Microsoft Fabric**, Microsoft's platform for company data. That choice mattered for two reasons. The company already signs in with Microsoft accounts, so the app never sees or stores a password — you sign in exactly the way you sign in to Outlook. And the hours land in a real SQL database inside the company's own cloud, which can be asked questions directly, without going through the app at all.
+It runs on **Microsoft Fabric**, Microsoft's platform for company data. That choice mattered for two reasons. The company already signs in with Microsoft accounts, so the app never sees or stores a password: you sign in exactly the way you sign in to Outlook. And the hours land in a real SQL database inside the company's own cloud, which can be asked questions directly, without going through the app at all.
 
 The surprising part is how little had to be written by hand. I described the data — a project has a name and a colour, a time entry has a date, a number of hours and a note — and a tool called **Rayfin** turned that description into the database tables, the web API the app talks to, the sign-in, and the hosting. The only part I wrote myself is the part you see: seven pages, from the dashboard and the entry form to a monthly plan and a view for the manager.
 
 Two of those pages are about the month rather than the day. One compares what was planned against what was actually worked; the other is where that plan gets written down in the first place.
 
 ![Monthly project hours: planned against actual, with progress rings and a table](work-hour-tracker/media/app-06-monthly-project-hours.png)
-*Planned against actual, project by project — and the same numbers as a plain table underneath, because a ring is not a figure you can check.*
+*Planned against actual, project by project, with the same numbers as a plain table underneath.*
 
 ![Monthly planning: a twelve-month grid of planned hours per project](work-hour-tracker/media/app-07-planning.png)
 *The plan — how many hours each project should get, month by month. A cell saves as soon as you click away.*
@@ -52,14 +52,14 @@ Two of those pages are about the month rather than the day. One compares what wa
 
 ## A raise shouldn't rewrite last year
 
-In a spreadsheet, the hourly rate is one cell. Change it, and every formula that uses it recalculates — including work that was invoiced months ago.
+In a spreadsheet, the hourly rate is one cell. Change it, and every formula that uses it recalculates, including work that was invoiced months ago.
 
 So the tracker never looks the rate up later. The moment you log an hour, it writes down the rate that applies right then, on that entry, and keeps it. Raise your rate tomorrow and only tomorrow's hours get the new price; everything already logged keeps the money it actually earned.
 
 ![The new time entry form: date, hours, project and a note](work-hour-tracker/media/app-03-new-entry.png)
 *Logging an hour. The rate that applies right now is written onto this entry as it is saved — that is the moment the money is frozen.*
 
-The same thinking decided who owns what. A project is shared, because everyone works for the same clients. A rate is personal: two people on one project can charge different amounts, and neither can see the other's. That is why the rate lives in its own table instead of on the project — if it sat on the project, sharing the project would share the money too.
+The same thinking decided who owns what. A project is shared, because everyone works for the same clients. A rate is personal: two people on one project can charge different amounts, and neither can see the other's. That is why the rate lives in its own table instead of on the project. If it sat on the project, sharing the project would share the money too.
 
 ![The Projects page: every person sets their own rate on a shared project](work-hour-tracker/media/app-05-projects.png)
 *The Projects page — the rate shown is yours alone, whoever else works on the same project.*
@@ -113,13 +113,17 @@ The rule I care most about is the one all three follow: **the AI calculates noth
 
 ## Your hours are yours
 
+The app signs in to its own database as a person. Not a service account: whoever happens to own the workspace, a colleague with a real name. Everything awkward in this chapter follows from that, so here it is first, out of order.
+
 Everyone's hours in one place raises an obvious question: who can see them? The rule fits in one sentence. **You see your own hours, the manager sees everyone's, and nobody can change anyone else's — the manager included.** A manager may look, never touch.
 
-Writing that rule down was easy. Keeping it true was not, because there are now two doors into the data. The app is one door, and it checks the rule before it shows anything. The AI assistant is the other: it goes straight to the database and never passes through the app's checks. A rule that guards only one door does not guard anything.
+Writing that rule down was easy. Keeping it true was not, because there are now two doors into the data. The app is one door, and it checks the rule before it shows anything. The AI assistant is the other: it goes straight to the database and never passes through the app's checks.
 
-So the rule is enforced twice — once in the app, and once in the database itself, where it applies no matter how someone gets in. To stop the two copies from slowly drifting apart, both are generated from one small file, and a status command compares them and complains when they no longer match. In the database, that one sentence became 25 separate rules across the five tables that hold personal data *(measured)*.
+The ordinary way to do this is with roles: a manager role that sees everything, an employee role that does not. That was the first thing I looked at. The platform has two roles, signed in and not signed in, and no way to add a third, so there was nothing to build on.
 
-I also wrote down where the protection ends, instead of hiding it. The names of projects are visible to everyone who can sign in, even projects they do not work on. And the database rules protect colleagues from each other, not from the people who administer the workspace: the app itself connects to the database as the workspace owner, a real person, so a rule strict enough to catch administrators would lock the app out for everybody. The fix is known — give the app an account of its own.
+So the rule is enforced twice: once in the app, and once in the database itself, where it applies no matter how someone gets in. To stop the two copies from slowly drifting apart, both are generated from one small file, and a status command compares them and complains when they no longer match. In the database, that one sentence became 25 separate rules across the five tables that hold personal data *(measured)*.
+
+I also wrote down where the protection ends, instead of hiding it. The names of projects are visible to everyone who can sign in, even projects they do not work on. And the database rules protect colleagues from each other, not from the people who administer the workspace. That is what the fact at the top of this chapter costs: a rule strict enough to catch an administrator catches the app as well, and locks it out for everybody.
 
 → **[Technical details: Your hours are yours](work-hour-tracker/security.md)** — the rule as code in both layers, the five kinds of database rule and what each one stops, and both exceptions in full
 
@@ -134,7 +138,7 @@ If someone picked this project up tomorrow, I would tell them four things:
 3. **Add automated tests before adding features.** Everything so far was checked by hand, and every bug so far was found by installing and using the tool for real. That does not scale.
 4. **Move the assistant's code into the company's account.** It still lives under a personal account, which would not survive its owner leaving.
 
-I have not started the analytics layer. It is the next thing I would build: a scheduled job that summarises hours and earnings into a Fabric lakehouse — Fabric's store for analysis data — with checks that the numbers are fresh and correct. That is the piece that would let someone ask a question about a whole year without opening the app at all.
+I have not started the analytics layer. It is the next thing I would build: a scheduled job that summarises hours and earnings into a Fabric lakehouse (Fabric's store for analysis data) with checks that the numbers are fresh and correct. That is the piece that would let someone ask a question about a whole year without opening the app at all.
 
 → **[Technical details: What I'd tell the next person](work-hour-tracker/lessons.md)** — the design decisions and what was rejected, how the work was checked, the findings in detail, and every known limitation
 

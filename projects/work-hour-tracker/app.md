@@ -8,7 +8,7 @@
 
 ## 1. The screens
 
-*All screenshots are of the running app, signed in against the demo database. Every note visible in the data begins with `[DEMO]` — that prefix is a property of the seeded dataset, and it is why these screenshots can be published at all.*
+*All screenshots are of the running app, signed in against the demo database. Every note visible in the data begins with `[DEMO]`: that prefix is a property of the seeded dataset, and it is why these screenshots can be published at all.*
 
 **Dashboard** — four KPIs, the week as a bar chart, hours by project in each project's own stored colour, and week-by-week small multiples where hours are *drawn* and money is *written*, so two measures share a card without sharing a scale. All five week cards share one maximum, so the weeks compare honestly.
 
@@ -37,7 +37,7 @@
 
 ![New time entry form](media/app-03-new-entry.png)
 
-**The sign-in gate.** No password is ever handled by this app — sign-in is brokered to Microsoft Entra ID through the Fabric portal.
+**The sign-in gate.** No password is ever handled by this app: sign-in is brokered to Microsoft Entra ID through the Fabric portal.
 
 ![Sign in with Microsoft](media/app-01-signin.png)
 
@@ -89,7 +89,7 @@ The agent path on the left is explained in [the agent layer](agentic-layer.md); 
 | UI | React 19 · Vite · Tailwind 4 | Fast HMR in development and a plain static build that Fabric hosting can serve without a Node server |
 | Backend | Rayfin 1.33 (`@microsoft/rayfin-*`) | Entities are declared in TypeScript and compiled into tables plus a CRUD API — no hand-written CRUD to drift out of sync with the schema |
 | Auth | Microsoft Entra ID (Fabric brokered sign-in) | The company identity already exists; no password is ever stored or handled |
-| Storage | Fabric SQL (MSSQL) | Same tenant and capacity as the app, and reachable by ordinary T-SQL — which is what made the agent path possible at all |
+| Storage | Fabric SQL (MSSQL) | Same tenant and capacity as the app, and reachable by ordinary T-SQL, which is what made the agent path possible at all |
 | Agent interface | Claude Code plugin + Node CLI (`mssql`) | Fabric sign-in is irreducibly browser-based (no device-code or service-principal flow), so a terminal tool cannot reuse the app's API and must talk to SQL directly |
 | Isolation | SQL row-level security | Enforcement had to live below the API, because the agent path bypasses the app's policies by construction |
 | Credentials | `az account get-access-token`, minted per run | Nothing secret at rest: no passwords, no connection secrets in the repo |
@@ -100,7 +100,7 @@ The agent path on the left is explained in [the agent layer](agentic-layer.md); 
 
 1. **Declare the data.** Six entities in `rayfin/data/*.ts`, listed in `schema.ts`; backend settings in `rayfin.yml`. What each one holds is in [the data model](data-model.md).
 2. **Deploy the backend.** `rayfin up` creates the tables, the Data API, the auth service and the static site; generated settings flow `rayfin/.env` → `.env.local` → the frontend at runtime.
-3. **Build the screens.** Dashboard (KPI cards), New Entry, Time Entries, Projects, Monthly Planning, Monthly Project Hours and Team — all behind an `AuthGate`, all data through one `RayfinClient`.
+3. **Build the screens.** Dashboard (KPI cards), New Entry, Time Entries, Projects, Monthly Planning, Monthly Project Hours and Team, all behind an `AuthGate`, all data through one `RayfinClient`.
 4. **Stamp ownership once.** `src/lib/user.ts` writes the four owner columns on every insert; the CLI mirrors the same logic so both paths agree.
 5. **Build the agent path.** A `work-hours` Claude Code skill over `scripts/wht.mjs`: `whoami`, `projects`, `hours`, `summary`, `plans`, `add-entry`, `set-plan`, `edit-entry`, `edit-project`, `delete-entry`, and a read-only `query` escape hatch.
 6. **Enforce isolation in SQL.** A row-level policy compiled from `rayfin/data/access.json` and applied with `rls --apply`; `rls --status` reports coverage.

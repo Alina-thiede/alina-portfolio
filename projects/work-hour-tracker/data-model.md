@@ -19,7 +19,7 @@ Every data table carries the same four owner columns — `user_email`, `user_nam
 | `ProjectMonthlyPlans` | one row per person per project per month | `id`, `month` (`YYYY-MM`), `plannedHours`, `project_id` |
 | `UserProfiles` | one row per person | source of truth for their real name; doubles as the team roster |
 
-None of those grains is a database constraint — the platform offers no `unique` option — so each is enforced in application code. Saving your rate, for example, is an upsert rather than an insert, because nothing in the database stops a second `ProjectRates` row for the same person and project.
+None of those grains is a database constraint (the platform offers no `unique` option), so each is enforced in application code. Saving your rate, for example, is an upsert rather than an insert, because nothing in the database stops a second `ProjectRates` row for the same person and project.
 
 ---
 
@@ -127,14 +127,14 @@ The colleague's address is typed in by hand rather than picked from a list — f
 
 ## 4. One identity, stamped on every row
 
-**`user_email` is the only real identity.** The name columns are display text — blank on older rows, and two people can derive the same name. Every read filters, groups and joins on the email.
+**`user_email` is the only real identity.** The name columns are display text: blank on older rows, and two people can derive the same name. Every read filters, groups and joins on the email.
 
 The real name comes from `UserProfiles`, not from the sign-in: the platform's session exposes only `{ id, email, role }`, with no name claim. The profile is loaded once at sign-in and cached, so stamping stays a plain synchronous call.
 
 Two helpers in `src/lib/user.ts` keep the owner columns honest:
 
 - **`ownerColumns(email)`** is spread into all seven `.create()` calls in the app, so no write site can remember one owner column and forget the others.
-- **`ownedBy(email)`** is its read-side twin, and every read that means *"mine"* must use it. The read policy is *"mine, or I am the manager"*, so for the manager an unfiltered read returns the whole team — and their own dashboard would quietly total everyone's hours and present them as theirs. No error, no crash, just wrong numbers that look plausible.
+- **`ownedBy(email)`** is its read-side twin, and every read that means *"mine"* must use it. The read policy is *"mine, or I am the manager"*, so for the manager an unfiltered read returns the whole team, and their own dashboard would quietly total everyone's hours and present them as theirs. No error, no crash, just wrong numbers that look plausible.
 
 ---
 

@@ -2,7 +2,7 @@
 
 [← Work hour tracker](../../work-hour-tracker.md) · [The agent layer](../agentic-layer.md) · [Portfolio](../../../README.md)
 
-These are the actual documents the app's tooling produces, for one person and one month. Nothing here was written by hand: each file is the output of a script that reads the database, and each is idempotent — the same call produces a byte-identical file.
+These are the actual documents the app's tooling produces, for one person and one month. Nothing here was written by hand: each file is the output of a script that reads the database, and each is idempotent: the same call produces a byte-identical file.
 
 > **Every figure is invented.** These were generated against the demo database, where every time entry note begins with `[DEMO]` — a prefix you can see running down the middle of the billing statement and the timesheet. The rates (90, 100, 120 €/h) are round numbers no real engagement uses. **Two edits were made before publishing:** the tax advisor's name was replaced with "die Steuerberatung", and one link to a file that lives only in the private repository was removed. Nothing else was touched.
 
@@ -28,7 +28,7 @@ Section 3 is where the [three-stage rate model](../data-model.md#2-money-lives-i
 | **[zeitaufzeichnung-demo-2026-08.md](zeitaufzeichnung-demo-2026-08.md)** | The Austrian statutory monthly working-time record. German. |
 | **[zeitaufzeichnung-demo-2026-08.csv](zeitaufzeichnung-demo-2026-08.csv)** | The same table as data. |
 
-A *Saldenaufzeichnung* under **§ 26 Abs 3 AZG**: Austrian law lets an employer record only the **duration** worked each day rather than start and end times, provided the balance is kept. So there are no clock times in it — that absence is the legal form, not missing data.
+A *Saldenaufzeichnung* under **§ 26 Abs 3 AZG**: Austrian law lets an employer record only the **duration** worked each day rather than start and end times, provided the balance is kept. So there are no clock times in it: that absence is the legal form, not missing data.
 
 The arithmetic it has to get right: a daily target derived from the contracted week, every Monday-to-Friday counted whether or not it was worked, holiday and sick days credited as *fulfilled* so a lawful absence cannot push the month negative, and a closing balance that goes to payroll. Here: 21 working days × 4,8 h = **100,80 h target** against **88,00 h actual**, balance **−12,80 h**.
 
@@ -47,7 +47,7 @@ These two are the documents behind [the planning screenshots](../agentic-layer.m
 
 The split of labour is the interesting part. The script computes every number: working days, deviations, fulfilment rates, trends, and its own warnings (`chronic-miss` for a project under 60 % twice running, `unbooked-workdays` for empty weekdays). The narrative — *what was actually achieved* — is written from the notes on the entries, and that half is the model's job. Section 3 of the review is that half: it reads eleven entries and concludes the feature went from working to finished, which is not something a query can say.
 
-The plan document records two things it was told to flag rather than quietly apply, both of which argue against the choice that was made. An agent that silently adjusts your numbers is worse than one that refuses.
+The plan document records two things it was told to flag rather than quietly apply, both of which argue against the choice that was made.
 
 ---
 

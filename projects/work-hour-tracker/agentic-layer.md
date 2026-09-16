@@ -8,9 +8,9 @@
 
 ## 1. Why the skills go underneath the app
 
-The app is one way into this data. This is the other: three [Claude Code](https://claude.com/claude-code) skills that read and write the same Fabric SQL database from a terminal conversation — and, for two of them, produce a finished document at the end of it.
+The app is one way into this data. This is the other: three [Claude Code](https://claude.com/claude-code) skills that read and write the same Fabric SQL database from a terminal conversation, and for two of them produce a finished document at the end of it.
 
-**Why they go underneath the app rather than through it.** The deployed Data API only supports interactive browser sign-in — there is no device-code flow and no service principal a command-line tool could use. So the skills sit *beneath* it and talk to Fabric SQL directly, through one 2 020-line Node CLI:
+**Why they go underneath the app rather than through it.** The deployed Data API only supports interactive browser sign-in: there is no device-code flow and no service principal a command-line tool could use. So the skills sit *beneath* it and talk to Fabric SQL directly, through one 2 020-line Node CLI:
 
 ```
    Person, in Claude Code                 ┌── az login (as themselves)
@@ -56,7 +56,7 @@ Turns a month of time entries into four files: the billing statement, the Austri
 
 The number that matters there is not the €9,810. It is the line beneath it — the document's totals re-derived by a **different command** (`wht.mjs summary --month`) and compared: 22 entries, 88.00 h, identical, rounding difference €0.00, all 11 internal checks green.
 
-That is the rule the skill enforces on the model driving it: **calculate nothing by hand.** Every number in the document comes from the script's JSON output; anything missing is written in as an open point, never estimated. A report where the model did the arithmetic is a report nobody can check.
+That is the rule the skill enforces on the model driving it: **calculate nothing by hand.** Every number in the document comes from the script's JSON output; anything missing is written in as an open point, never estimated.
 
 #### What it produced
 
@@ -110,7 +110,7 @@ All six documents, with their framing: **[samples/ →](samples/)**
 
 ## 3. Identity belongs to the connection, not to the configuration
 
-The first version read *"who am I"* from a config file. That does not fail loudly when it is wrong — it quietly shows you somebody else's earnings, formatted perfectly.
+The first version read *"who am I"* from a config file. That does not fail loudly when it is wrong. It quietly shows you somebody else's earnings, formatted perfectly.
 
 ```js
 /** The caller's email, as the database sees it. The one source of "who am I". */
@@ -130,13 +130,13 @@ async function me() {
 ```
 *Abridged from `wht.mjs`.*
 
-The configured value was not deleted — it was **demoted to a guard rail**. If it is set and disagrees with the connection, the tool refuses to run at all rather than showing anything. Normally it is left blank and the tool detects you.
+The configured value was not deleted. It was **demoted to a guard rail**. If it is set and disagrees with the connection, the tool refuses to run at all rather than showing anything. Normally it is left blank and the tool detects you.
 
-`SUSER_SNAME()` returns the caller's real Entra UPN, which is exactly what the `user_email` columns hold — so the CLI and [the database's row-level security](security.md) agree on what an identity *is* with no mapping table in between.
+`SUSER_SNAME()` returns the caller's real Entra UPN, which is exactly what the `user_email` columns hold, so the CLI and [the database's row-level security](security.md) agree on what an identity *is* with no mapping table in between.
 
 **The general rule: derive identity from the authenticated channel, never from configuration.** Configuration is a suggestion; a connection is a fact. There is no field anyone can fill in wrong, and no per-person setup step to forget.
 
-The same instinct produced `whoami`, which prints the resolved identity, the workspace, the database and how many rows you own — the first thing to run whenever a number looks wrong.
+The same instinct produced `whoami`, which prints the resolved identity, the workspace, the database and how many rows you own. It is the first thing to run whenever a number looks wrong.
 
 ---
 
@@ -161,7 +161,7 @@ PERIODS --today --yesterday --week --last-week --month YYYY-MM --from/--to
 
 `query "<SELECT …>"` lets a conversation ask something the fixed commands do not cover. It is the most dangerous surface in the tool, so it is fenced three ways.
 
-The first version checked `/^\s*select\b/i` — which only inspects how the string *starts*. The driver executes batches, so `SELECT 1; DELETE FROM TimeEntries` sailed straight through.
+The first version checked `/^\s*select\b/i`, which only inspects how the string *starts*. The driver executes batches, so `SELECT 1; DELETE FROM TimeEntries` sailed straight through.
 
 ```js
 const BANNED_SQL = /\b(insert|update|delete|drop|alter|truncate|merge|create|grant|revoke|exec|execute|backup|restore|shutdown)\b|\b(sp_|xp_)\w*/i;
@@ -189,17 +189,17 @@ await pool.request().query(`BEGIN TRANSACTION;\n${safe};\nROLLBACK TRANSACTION;`
 
 Anything that slips the parser still cannot persist.
 
-**And it is documented as what it is:** a guard rail against accidents, *not* a security boundary. A genuine boundary would be a read-only database principal. Writing that sentence into the source is the difference between a known limitation and a false sense of safety.
+**And it is documented as what it is:** a guard rail against accidents, *not* a security boundary. A genuine boundary would be a read-only database principal.
 
 ---
 
 ## 6. What the skills instruct the model to do
 
-A skill is not only a wrapper around a CLI — it is a set of standing instructions, and these three are mostly rules about what the model may *not* do.
+A skill is not only a wrapper around a CLI; it is a set of standing instructions, and these three are mostly rules about what the model may *not* do.
 
 **Calculate nothing by hand.** Every number in a generated document must come from the script's JSON output. Anything missing is written into the document as an open point, never estimated. So the statement skill re-derives its own totals with a second, independent command before reporting, and the [published statement](samples/abrechnung-demo-2026-08.md) carries that reconciliation in section 7.
 
-**Review before questions, questions before writing.** The planning skill fixes the order because the review is what makes the questions answerable. Asking first is asking into the dark.
+**Review before questions, questions before writing.** The planning skill fixes the order because the review is what makes the questions answerable.
 
 **Flag, do not adjust.** Where the data argues against the choice a person made, that goes into the document as a recorded objection, not a quiet correction to the numbers.
 

@@ -8,7 +8,7 @@
 
 ## 1. Outcome
 
-- One Fabric SQL database holds projects, time entries, per-person rates and monthly plans behind Entra sign-in — reporting is a query, not a collection exercise.
+- One Fabric SQL database holds projects, time entries, per-person rates and monthly plans behind Entra sign-in. Reporting is a query, not a collection exercise.
 - Two write paths, one data shape: the web app, and a Claude Code plugin ("log 3h on Acme today") driven by a Node CLI. Both stamp the same four owner columns, so rows written from the terminal are indistinguishable from rows written in the browser.
 - Earnings are point-in-time correct: each time entry carries a frozen copy of the rate that applied when it was logged.
 - Per-person data isolation is enforced in the database itself, not only in the app.
@@ -69,11 +69,13 @@ Verified by hand end to end, from a clean install through to writes landing in t
 
 ## 6. Limitations & next steps
 
+If you take this over, you will meet the first four in your first week. The last one is a direction, not a defect.
+
 - **No automated tests or CI.** Every defect so far was found by installing and using the thing. First priority.
-- **Project *names* are readable by any signed-in user.** A policy cannot check membership, so the app filters the project list and the backend does not. Hours, rates and plans are not exposed — but names are, and calling that "filtered in the UI" would be dishonest.
+- **Project *names* are readable by any signed-in user.** A policy cannot check membership, so the app filters the project list and the backend does not. Hours, rates and plans are not exposed. Names are.
 - **Manager visibility is a literal email list** compiled into the policy. Fine for one team, wrong past a handful of people.
 - **Unenrolled logins are not filtered.** Workspace admins and owners read everything, by design of the allowlist.
 - **Onboarding is manual**: Node, the Azure CLI, and a one-off database grant per person.
-- **This is an OLTP application, not a pipeline.** The natural next build is the analytics layer — a scheduled aggregate of hours and earnings into a Fabric lakehouse, with freshness and quality checks.
+- **This is an OLTP application, not a pipeline.** The natural next build is the analytics layer: a scheduled aggregate of hours and earnings into a Fabric lakehouse, with freshness and quality checks.
 
 [← back to the story](../work-hour-tracker.md#what-id-tell-the-next-person) · [Portfolio](../../README.md)
