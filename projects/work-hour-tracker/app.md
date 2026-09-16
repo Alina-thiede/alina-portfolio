@@ -51,7 +51,7 @@
 flowchart TB
     subgraph client["Frontend — src/ (React 19 + Vite + Tailwind)"]
         gate["AuthGate — no sign-in, no app"]
-        pages["Pages · Dashboard · New Entry · Time Entries<br/>Projects · Monthly Planning · Team"]
+        pages["Pages · Dashboard · New Entry · Time Entries · Projects<br/>Monthly Planning · Monthly Project Hours · Team"]
         bridge["RayfinClient — src/lib/rayfin.ts"]
         gate --> pages --> bridge
     end
@@ -65,7 +65,7 @@ flowchart TB
     subgraph fabric["Microsoft Fabric — deployed by rayfin up"]
         api["Data API — generated from rayfin/data/*.ts"]
         auth["Entra ID sign-in"]
-        db[("Fabric SQL · Projects · TimeEntries<br/>ProjectRates · ProjectMonthlyPlans · UserProfiles")]
+        db[("Fabric SQL · Projects · TimeEntries · ProjectRates<br/>ProjectShares · ProjectMonthlyPlans · UserProfiles")]
         rls["Row-level security — allowlist over sec.Enrollment"]
         api --> db
         rls --- db
@@ -113,7 +113,8 @@ The agent path on the left is explained in [the agent layer](agentic-layer.md); 
 ```
 work-hour-tracker/
 ├── src/                     frontend (hand-written)
-│   ├── pages/               Dashboard · NewTimeEntry · TimeEntries · Projects · MonthlyPlanning · Team
+│   ├── pages/               Dashboard · NewTimeEntry · TimeEntries · Projects
+│   │                        MonthlyPlanning · MonthlyProjectHours · Team
 │   ├── components/          AuthGate · Layout · KpiCard · FormField · ConfirmButton · charts
 │   └── lib/                 rayfin.ts (API bridge) · user.ts (owner stamping) · hours.ts · rates.ts
 └── rayfin/
