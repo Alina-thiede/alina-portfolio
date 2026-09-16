@@ -40,7 +40,7 @@ Two things in that run matter more than the write itself.
 
 **It reads back what it wrote**, rather than reporting success from an exit code — and the read-back is where the three-stage rate model becomes visible: Fabric Demo froze at **90 €/h**, the *personal* `ProjectRates` value, not the 80 €/h suggested on the project row. ([Why there are three rates.](data-model.md#2-money-lives-in-three-places-on-purpose))
 
-**It reported its own side effects.** It flagged that it had added the `[DEMO]` prefix without being asked and said why, and it noticed the sandbox had drifted from its documented seed — 52 entries and 9 plan rows against a documented 50 and 6 — and named the two commands that restore it. Neither was requested. An agent with database write access that only tells you what you asked about is an agent you cannot audit.
+**It reported its own side effects.** It flagged that it had added the `[DEMO]` prefix without being asked and said why, and it noticed the sandbox had drifted from its documented seed — 52 entries and 9 plan rows against a documented 50 and 6 — and named the two commands that restore it. Neither was requested.
 
 ### `monthly-statement` — the billing and statutory documents
 
@@ -197,7 +197,7 @@ Anything that slips the parser still cannot persist.
 
 A skill is not only a wrapper around a CLI — it is a set of standing instructions, and these three are mostly rules about what the model may *not* do.
 
-**Calculate nothing by hand.** Every number in a generated document must come from the script's JSON output. Anything missing is written into the document as an open point, never estimated. A report where the model did the arithmetic is a report nobody can check — so the statement skill re-derives its own totals with a second, independent command before reporting, and the [published statement](samples/abrechnung-demo-2026-08.md) carries that reconciliation in section 7.
+**Calculate nothing by hand.** Every number in a generated document must come from the script's JSON output. Anything missing is written into the document as an open point, never estimated. So the statement skill re-derives its own totals with a second, independent command before reporting, and the [published statement](samples/abrechnung-demo-2026-08.md) carries that reconciliation in section 7.
 
 **Review before questions, questions before writing.** The planning skill fixes the order because the review is what makes the questions answerable. Asking first is asking into the dark.
 

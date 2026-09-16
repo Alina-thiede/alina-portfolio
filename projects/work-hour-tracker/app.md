@@ -76,7 +76,7 @@ flowchart TB
     cli -- "T-SQL, token from az login" --> db
 ```
 
-The frontend is the only part written by hand. The database, the CRUD API, the auth service and the static hosting are generated from the TypeScript entity files in `rayfin/data/` by `rayfin up`.
+The frontend is the only part written by hand. The database, the CRUD API, the auth service and the static hosting are generated from the TypeScript entity files in `rayfin/data/` by `rayfin up`. I had expected to write much more of this than I did.
 
 The agent path on the left is explained in [the agent layer](agentic-layer.md); the row-level security at the bottom in [security](security.md).
 

@@ -163,6 +163,6 @@ The fix, and the reason it has not been applied yet: give the Fabric item its ow
 
 - **Ship the drift check on day one, not after the second layer exists.** `rls --status` was written last. It should have been written first, because until it existed there was no way to answer *"do these two agree?"* other than reading both by eye.
 - **Never let an application run as a person.** Everything awkward in section 4 follows from that one fact.
-- **Write the exceptions into the source, beside the code they excuse.** Both of the above live as long comments in the files that implement them. Six months later that is the difference between a documented trade-off and a bug nobody can explain.
+- **Write the exceptions into the source, beside the code they excuse.** Both of the above live as long comments in the files that implement them. In six months nobody will remember why either one is there.
 
 [← back to the story](../work-hour-tracker.md#your-hours-are-yours) · [Portfolio](../../README.md)

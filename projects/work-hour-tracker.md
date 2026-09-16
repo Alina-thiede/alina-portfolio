@@ -107,7 +107,7 @@ This runs in **Claude Code**, an AI assistant that works in the terminal. I gave
 ![The finished plan, written to the database and read back out](work-hour-tracker/media/skill-planning-05-result.png)
 *The finished plan, written into the database and then read back out to check it arrived.*
 
-The rule I care most about is the one all three follow: **the AI calculates nothing by hand.** Every number comes from the program, and the statement checks its own totals against a second, independent query before it reports anything. A document where the AI did the maths is a document nobody can check.
+The rule I care most about is the one all three follow: **the AI calculates nothing by hand.** Every number comes from the program, and the statement checks its own totals against a second, independent query before it reports anything. I would not trust a number the assistant worked out on its own, and nobody reading the statement should have to.
 
 → **[Technical details: Logging hours by just saying so](work-hour-tracker/agentic-layer.md)** — all three skills step by step, and how the database connection decides who you are · **[The documents they produced →](work-hour-tracker/samples/)**
 
@@ -134,7 +134,7 @@ If someone picked this project up tomorrow, I would tell them four things:
 3. **Add automated tests before adding features.** Everything so far was checked by hand, and every bug so far was found by installing and using the tool for real. That does not scale.
 4. **Move the assistant's code into the company's account.** It still lives under a personal account, which would not survive its owner leaving.
 
-The next thing I would build is the analytics layer: a scheduled job that summarises hours and earnings into a Fabric lakehouse — Fabric's store for analysis data — with checks that the numbers are fresh and correct. The tracker collects the data; that layer would turn it into answers.
+The next thing I would build is the analytics layer: a scheduled job that summarises hours and earnings into a Fabric lakehouse — Fabric's store for analysis data — with checks that the numbers are fresh and correct. I have not started it.
 
 → **[Technical details: What I'd tell the next person](work-hour-tracker/lessons.md)** — the design decisions and what was rejected, how the work was checked, the findings in detail, and every known limitation
 
