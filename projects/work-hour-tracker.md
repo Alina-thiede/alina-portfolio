@@ -30,12 +30,23 @@ This is the story of replacing those spreadsheets, and of the part that turned o
 
 The answer was a web app: each person logs their hours against a project, and a dashboard adds everything up on its own.
 
+![The sign-in screen: one button, sign in with Microsoft](work-hour-tracker/media/app-01-signin.png)
+*The way in — the same Microsoft account everyone already uses at work.*
+
 ![The dashboard: this week's hours, hours per project, and what they earned](work-hour-tracker/media/app-02-dashboard.png)
 *The dashboard — this week as a bar chart, hours per project, and what they earned. Every number comes from the invented demo data.*
 
 It runs on **Microsoft Fabric**, Microsoft's platform for company data. That choice mattered for two reasons. The company already signs in with Microsoft accounts, so the app never sees or stores a password — you sign in exactly the way you sign in to Outlook. And the hours land in a real SQL database inside the company's own cloud, which can be asked questions directly, without going through the app at all.
 
 The surprising part is how little had to be written by hand. I described the data — a project has a name and a colour, a time entry has a date, a number of hours and a note — and a tool called **Rayfin** turned that description into the database tables, the web API the app talks to, the sign-in, and the hosting. The only part I wrote myself is the part you see: seven pages, from the dashboard and the entry form to a monthly plan and a view for the manager.
+
+Two of those pages are about the month rather than the day. One compares what was planned against what was actually worked; the other is where that plan gets written down in the first place.
+
+![Monthly project hours: planned against actual, with progress rings and a table](work-hour-tracker/media/app-06-monthly-project-hours.png)
+*Planned against actual, project by project — and the same numbers as a plain table underneath, because a ring is not a figure you can check.*
+
+![Monthly planning: a twelve-month grid of planned hours per project](work-hour-tracker/media/app-07-planning.png)
+*The plan — how many hours each project should get, month by month. A cell saves as soon as you click away.*
 
 → **[Technical details: One place for everyone's hours](work-hour-tracker/app.md)** — every screen, the architecture diagram, the tech stack and why each piece was chosen
 
@@ -45,12 +56,18 @@ In a spreadsheet, the hourly rate is one cell. Change it, and every formula that
 
 So the tracker never looks the rate up later. The moment you log an hour, it writes down the rate that applies right then, on that entry, and keeps it. Raise your rate tomorrow and only tomorrow's hours get the new price; everything already logged keeps the money it actually earned.
 
+![The new time entry form: date, hours, project and a note](work-hour-tracker/media/app-03-new-entry.png)
+*Logging an hour. The rate that applies right now is written onto this entry as it is saved — that is the moment the money is frozen.*
+
 The same thinking decided who owns what. A project is shared, because everyone works for the same clients. A rate is personal: two people on one project can charge different amounts, and neither can see the other's. That is why the rate lives in its own table instead of on the project — if it sat on the project, sharing the project would share the money too.
 
 ![The Projects page: every person sets their own rate on a shared project](work-hour-tracker/media/app-05-projects.png)
 *The Projects page — the rate shown is yours alone, whoever else works on the same project.*
 
 One small rule protects all of this: entries are edited, never deleted and added again. A re-added entry would pick up today's rate and quietly change what old work was worth.
+
+![The time entries list, newest first, each row editable in place](work-hour-tracker/media/app-04-time-entries.png)
+*Everything logged, newest first. A mistake is corrected with Edit — deleting the row and adding it again would hand old work today's price.*
 
 → **[Technical details: A raise shouldn't rewrite last year](work-hour-tracker/data-model.md)** — the six tables, the three places a rate lives, and the code that keeps them in agreement
 
@@ -63,9 +80,32 @@ This runs in **Claude Code**, an AI assistant that works in the terminal. I gave
 ![Logging two entries in plain language, then reading them back](work-hour-tracker/media/skill-work-hours-01-log-entry.png)
 *Two entries logged with one sentence each, then read back from the database to prove they landed.*
 
-- **`work-hours`** logs, edits and summarises hours. After every change it reads the data back, instead of just saying "done".
-- **`monthly-statement`** turns a month of hours into the documents a month ends with: the billing statement, and the working-time record Austrian law requires. Before it starts, it asks the questions that would make the document wrong if guessed — such as which VAT rate applies.
-- **`month-planning`** reviews last month, then asks how to plan the next one. In the demo it noticed, without being asked, that four Fridays had no hours at all — and asked whether that was on purpose, because the answer changes the whole plan.
+**`work-hours`** logs, edits and summarises hours. After every change it reads the data back, instead of just saying "done" — which is what the run above is showing.
+
+**`monthly-statement`** turns a month of hours into the documents a month ends with: the billing statement, and the working-time record Austrian law requires. Before it starts, it asks the questions that would make the document wrong if guessed.
+
+![The skill asking which VAT rate to apply, with each answer priced out](work-hour-tracker/media/skill-statement-01-vat-question.png)
+*It asks instead of assuming. A wrong VAT rate would make the whole document useless, so every possible answer is shown with what it would cost.*
+
+![The finished statement, with its totals checked against a second query](work-hour-tracker/media/skill-statement-02-result.png)
+*The finished statement — and underneath it, the same totals worked out again by a different command, to show the two agree.*
+
+**`month-planning`** reviews the month that ended, then asks how to plan the next one, then writes that plan into the database.
+
+![The question about how many hours to plan, each option backed by a number](work-hour-tracker/media/skill-planning-01-capacity.png)
+*How many hours should next month hold? Each option comes with the number it is based on.*
+
+![A project that missed its plan two months running, and four ways to respond](work-hour-tracker/media/skill-planning-02-chronic-miss.png)
+*A project that fell short of its plan two months in a row — and four ways to deal with it.*
+
+![The question of where the focus should go, with each project's recent history](work-hour-tracker/media/skill-planning-03-focus.png)
+*Where should the effort go? Each project arrives with its own recent history attached to the choice.*
+
+![Four Fridays with no hours booked, turned into a question](work-hour-tracker/media/skill-planning-04-fridays.png)
+*Nobody asked it to look. It noticed that four Fridays had no hours at all and asked whether that was on purpose — because the answer changes the arithmetic of the whole plan.*
+
+![The finished plan, written to the database and read back out](work-hour-tracker/media/skill-planning-05-result.png)
+*The finished plan, written into the database and then read back out to check it arrived.*
 
 The rule I care most about is the one all three follow: **the AI calculates nothing by hand.** Every number comes from the program, and the statement checks its own totals against a second, independent query before it reports anything. A document where the AI did the maths is a document nobody can check.
 
